@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Set-Location \"c:\\\\Users\\\\USER\\\\life\"; npx tsc --noEmit --skipLibCheck 2>&1; echo \"exit: $LASTEXITCODE\")",
+      "Bash(npx expo *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}
