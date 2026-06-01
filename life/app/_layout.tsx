@@ -1,11 +1,13 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
 
 import { initDatabase } from '@/database';
@@ -16,6 +18,8 @@ import {
   scheduleDailyMorningReminder,
   scheduleHabitReminder,
 } from '@/utils/notifications';
+import { generateRecurringTasks, cleanOldRecurringTasks } from '@/utils/recurrence';
+import { SplashScreen as AppSplashScreen } from '@/components/SplashScreen';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -39,7 +43,8 @@ const AppTheme = {
 };
 
 export default function RootLayout() {
-  const [dbReady, setDbReady] = useState(false);
+  const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -50,37 +55,49 @@ export default function RootLayout() {
   }, [fontError]);
 
   useEffect(() => {
-    initDatabase()
-      .then(() => setDbReady(true))
-      .catch(e => {
+    const setup = async () => {
+      try {
+        await initDatabase();
+        generateRecurringTasks();
+        setTimeout(() => cleanOldRecurringTasks(), 2000);
+
+        const onboarded = await AsyncStorage.getItem('onboarded');
+        if (!onboarded) {
+          setIsReady(true);
+          router.replace('/onboarding');
+          return;
+        }
+      } catch (e) {
         console.error('DB init failed', e);
-        setDbReady(true);
-      });
+      }
+      setIsReady(true);
+    };
+    setup();
   }, []);
 
   useEffect(() => {
-    if (!fontsLoaded || !dbReady) return;
+    if (!fontsLoaded || !isReady) return;
     SplashScreen.hideAsync();
 
-    // Setup notifications après initialisation DB
     const setup = async () => {
       const granted = await requestNotificationPermission();
       if (!granted) return;
 
-      const today        = todayISO();
-      const todayTasks   = TasksDB.getByDate(today);
-      const pending      = todayTasks.filter(t => !t.completed);
+      const today      = todayISO();
+      const todayTasks = TasksDB.getByDate(today);
+      const pending    = todayTasks.filter(t => !t.completed);
       await scheduleDailyMorningReminder(pending.length);
       await scheduleHabitReminder();
     };
     setup();
-  }, [fontsLoaded, dbReady]);
+  }, [fontsLoaded, isReady]);
 
-  if (!fontsLoaded || !dbReady) {
-    return <View style={{ flex: 1, backgroundColor: Colors.bg0 }} />;
+  if (!fontsLoaded || !isReady) {
+    return <AppSplashScreen />;
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <ThemeProvider value={AppTheme}>
         <View style={{ flex: 1, backgroundColor: Colors.bg0 }}>
@@ -104,11 +121,19 @@ export default function RootLayout() {
                 headerShadowVisible: false,
               }}
             />
+            <Stack.Screen
+              name="stats"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
         </View>
         <StatusBar style="dark" />
       </ThemeProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { SwipeableRow } from '@/components/ui/SwipeableRow'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Calendar } from 'react-native-calendars'
 import { format, addDays } from 'date-fns'
@@ -84,23 +86,15 @@ function sortTasks(list: Task[]): Task[] {
 // ─── TaskItem ─────────────────────────────────────────────────────────────────
 
 interface TaskItemProps {
-  task:       Task
-  onToggle:   (id: string) => void
-  onDelete:   (id: string) => void
-  deleteMode: boolean
-  onLongPress:(id: string) => void
+  task:     Task
+  onToggle: () => void
 }
 
-function TaskItem({ task, onToggle, onDelete, deleteMode, onLongPress }: TaskItemProps) {
+function TaskItem({ task, onToggle }: TaskItemProps) {
   const p = PRIORITY_CFG[task.priority] ?? PRIORITY_CFG.medium
 
   return (
-    <TouchableOpacity
-      onPress={() => onToggle(task.id)}
-      onLongPress={() => onLongPress(task.id)}
-      delayLongPress={500}
-      activeOpacity={0.85}
-    >
+    <TouchableOpacity onPress={onToggle} activeOpacity={0.85}>
       <View style={[st.taskCard, { borderLeftColor: p.border }]}>
         {/* Ligne principale */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -130,28 +124,19 @@ function TaskItem({ task, onToggle, onDelete, deleteMode, onLongPress }: TaskIte
         </View>
 
         {/* Ligne secondaire : heure + récurrence */}
-        {(task.time || task.recurrence !== 'none') && (
+        {(task.time || task.recurrence !== 'none' || !!task.parentId) && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginLeft: 34 }}>
             {task.time && (
               <Text style={{ fontSize: 11, color: '#6C47FF', fontWeight: '600' }}>🕐 {task.time}</Text>
             )}
-            {task.recurrence !== 'none' && (
+            {(task.recurrence !== 'none' || !!task.parentId) && (
               <Text style={{ fontSize: 11, color: '#A0A0B8' }}>
-                🔁 {RECURRENCE_LABELS[task.recurrence]}
+                {task.recurrence !== 'none'
+                  ? `🔁 ${RECURRENCE_LABELS[task.recurrence]}`
+                  : '🔁'}
               </Text>
             )}
           </View>
-        )}
-
-        {/* Bouton supprimer (mode long press) */}
-        {deleteMode && (
-          <TouchableOpacity
-            onPress={() => onDelete(task.id)}
-            style={st.deleteBtn}
-            activeOpacity={0.85}
-          >
-            <Text style={st.deleteBtnText}>🗑 Supprimer</Text>
-          </TouchableOpacity>
         )}
       </View>
     </TouchableOpacity>
@@ -177,14 +162,13 @@ const INITIAL_FORM = {
 }
 
 export default function TasksScreen() {
-  const { tasks, load, addTask, toggleTask, deleteTask } = useTasksStore()
+  const { tasks, load, addTask, toggleTask, deleteTask, updateTask } = useTasksStore()
 
   const [tab,          setTab]          = useState<TabKey>('today')
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const [showSheet,    setShowSheet]    = useState(false)
   const [form,         setForm]         = useState(INITIAL_FORM)
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [deleteId,     setDeleteId]     = useState<string | null>(null)
 
   useFocusEffect(useCallback(() => { load() }, []))
 
@@ -205,9 +189,13 @@ export default function TasksScreen() {
       groups[t.date].push(t)
     })
     return Object.entries(groups)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, list]) => ({ date, tasks: sortTasks(list) }))
-  }, [tasks])
+      .map(([date, list]) => ({ date, tasks: sortTasks(list), isPast: date < today }))
+      .sort((a, b) => {
+        // Present/future first, past last
+        if (a.isPast !== b.isPast) return a.isPast ? 1 : -1
+        return a.date.localeCompare(b.date)
+      })
+  }, [tasks, today])
 
   const calendarTasks = useMemo(
     () => sortTasks(tasks.filter(t => t.date === selectedDate)),
@@ -256,8 +244,26 @@ export default function TasksScreen() {
     Keyboard.dismiss()
   }
 
-  const handleLongPress = (id: string) =>
-    setDeleteId(prev => (prev === id ? null : id))
+  const handleDeleteTask = (task: Task) => {
+    if (task.recurrence !== 'none' || task.parentId) {
+      Alert.alert(
+        'Supprimer la tâche',
+        'Supprimer uniquement cette occurrence ou toutes ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Juste celle-ci', onPress: () => deleteTask(task.id, false) },
+          { text: 'Toutes', style: 'destructive', onPress: () => deleteTask(task.id, true) },
+        ]
+      )
+    } else {
+      deleteTask(task.id)
+    }
+  }
+
+  const handlePostpone = (task: Task) => {
+    const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd')
+    updateTask(task.id, { date: tomorrow })
+  }
 
   const formDateLabel = () => {
     if (form.date === today)    return "Aujourd'hui"
@@ -268,14 +274,27 @@ export default function TasksScreen() {
   // ── Render helpers ───────────────────────────────────────────────────────────
 
   const renderTask = (task: Task) => (
-    <TaskItem
+    <SwipeableRow
       key={task.id}
-      task={task}
-      onToggle={id => { setDeleteId(null); toggleTask(id) }}
-      onDelete={id => { deleteTask(id); setDeleteId(null) }}
-      deleteMode={deleteId === task.id}
-      onLongPress={handleLongPress}
-    />
+      leftActions={[
+        {
+          label: 'Reporter',
+          emoji: '📅',
+          color: '#FF9500',
+          onPress: () => handlePostpone(task),
+        },
+      ]}
+      rightActions={[
+        {
+          label: 'Supprimer',
+          emoji: '🗑️',
+          color: '#FF5C5C',
+          onPress: () => handleDeleteTask(task),
+        },
+      ]}
+    >
+      <TaskItem task={task} onToggle={() => toggleTask(task.id)} />
+    </SwipeableRow>
   )
 
   const emptyMsg = (msg: string) => (
@@ -290,7 +309,6 @@ export default function TasksScreen() {
           contentContainerStyle={st.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          onScrollBeginDrag={() => setDeleteId(null)}
         >
           {/* ── Header ──────────────────────────────────────────────────── */}
           <View style={st.header}>
@@ -329,8 +347,8 @@ export default function TasksScreen() {
           {tab === 'all' && (
             tasks.length === 0
               ? emptyMsg('Aucune tâche 🎉')
-              : groupedTasks.map(({ date, tasks: grp }) => (
-                  <View key={date}>
+              : groupedTasks.map(({ date, tasks: grp, isPast }) => (
+                  <View key={date} style={isPast ? { opacity: 0.5 } : undefined}>
                     <Text style={st.groupHeader}>{dateHeader(date)}</Text>
                     {grp.map(renderTask)}
                   </View>
@@ -347,7 +365,7 @@ export default function TasksScreen() {
                 style={CAL_STYLE}
                 markedDates={markedDates}
                 markingType="multi-dot"
-                onDayPress={day => { setSelectedDate(day.dateString); setDeleteId(null) }}
+                onDayPress={day => setSelectedDate(day.dateString)}
               />
 
               <Text style={st.calDateLabel}>{dateHeader(selectedDate)}</Text>
@@ -526,12 +544,6 @@ const st = StyleSheet.create({
     shadowColor: '#6C47FF', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  deleteBtn: {
-    marginTop: 10, backgroundColor: '#FF5C5C', borderRadius: 10,
-    padding: 10, alignItems: 'center',
-  },
-  deleteBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,26,0.35)' },
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,

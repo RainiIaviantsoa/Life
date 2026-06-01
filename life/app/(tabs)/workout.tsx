@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { SwipeableRow } from '@/components/ui/SwipeableRow'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -39,7 +41,7 @@ const mockEmomExercises: EmomEx[] = [
   { name: 'Push-ups',          reps: 12, emoji: '💪' },
 ]
 
-const mockHistory: HistoryItem[] = [
+const INITIAL_HISTORY: HistoryItem[] = [
   { id: '1', name: 'Push / Pull',       type: 'classic', duration: 45, date: '2026-05-05' },
   { id: '2', name: 'Full body EMOM',    type: 'emom',    duration: 20, date: '2026-05-03' },
   { id: '3', name: 'Legs day',          type: 'classic', duration: 50, date: '2026-05-01' },
@@ -105,6 +107,9 @@ function HistoryCard({ item }: { item: HistoryItem }) {
 export default function WorkoutScreen() {
   const [tab,         setTab]         = useState<WorkoutType>('classic')
   const [showSheet,   setShowSheet]   = useState(false)
+  const [history,     setHistory]     = useState<HistoryItem[]>(INITIAL_HISTORY)
+
+  const deleteWorkout = (id: string) => setHistory(prev => prev.filter(h => h.id !== id))
 
   // ── EMOM timer state ────────────────────────────────────────────────────────
   const [timer, setTimer] = useState({
@@ -283,8 +288,29 @@ export default function WorkoutScreen() {
 
           {/* ── Historique (commun aux 2 vues) ─────────────────────────── */}
           <SectionLabel>Historique</SectionLabel>
-          {mockHistory.map(item => (
-            <HistoryCard key={item.id} item={item} />
+          {history.map(item => (
+            <SwipeableRow
+              key={item.id}
+              rightActions={[
+                {
+                  label: 'Supprimer',
+                  emoji: '🗑️',
+                  color: '#FF5C5C',
+                  onPress: () => {
+                    Alert.alert(
+                      'Supprimer la séance',
+                      'Cette action est irréversible.',
+                      [
+                        { text: 'Annuler', style: 'cancel' },
+                        { text: 'Supprimer', style: 'destructive', onPress: () => deleteWorkout(item.id) },
+                      ]
+                    )
+                  },
+                },
+              ]}
+            >
+              <HistoryCard item={item} />
+            </SwipeableRow>
           ))}
         </ScrollView>
 

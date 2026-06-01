@@ -26,13 +26,19 @@ function rowToTask(r: any): Task {
 }
 
 export const TasksDB = {
+  // Returns tasks visible in the list:
+  // - regular tasks (recurrence='none', no parentId)
+  // - recurring children (have parentId)
+  // Parent templates (recurrence!='none', no parentId) are hidden — they're just the source of truth.
   getAll: (): Task[] => {
     try {
       return db
         .getAllSync<any>(
-          'SELECT * FROM tasks WHERE parentId IS NULL ORDER BY date ASC, time ASC, createdAt DESC'
+          `SELECT * FROM tasks
+           WHERE (parentId IS NOT NULL) OR (recurrence = 'none' AND parentId IS NULL)
+           ORDER BY date ASC, time ASC, createdAt DESC`
         )
-        .filter(r => r.date)       // exclude legacy null-date rows
+        .filter(r => r.date)
         .map(rowToTask)
     } catch { return [] }
   },
@@ -41,11 +47,56 @@ export const TasksDB = {
     try {
       return db
         .getAllSync<any>(
-          'SELECT * FROM tasks WHERE date = ? AND parentId IS NULL ORDER BY time ASC, priority DESC, createdAt DESC',
+          `SELECT * FROM tasks
+           WHERE date = ?
+             AND ((parentId IS NOT NULL) OR (recurrence = 'none' AND parentId IS NULL))
+           ORDER BY time ASC, priority DESC, createdAt DESC`,
           [date]
         )
         .map(rowToTask)
     } catch { return [] }
+  },
+
+  getRecurring: (): any[] => {
+    try {
+      return db.getAllSync<any>(
+        `SELECT * FROM tasks WHERE recurrence != 'none' AND parentId IS NULL`
+      )
+    } catch { return [] }
+  },
+
+  existsForDate: (parentId: string, date: string): boolean => {
+    try {
+      const row = db.getFirstSync<{ id: string }>(
+        `SELECT id FROM tasks WHERE parentId = ? AND date = ?`,
+        [parentId, date]
+      )
+      return !!row
+    } catch { return false }
+  },
+
+  getChildren: (parentId: string): Task[] => {
+    try {
+      return db
+        .getAllSync<any>(
+          `SELECT * FROM tasks WHERE parentId = ? ORDER BY date DESC`,
+          [parentId]
+        )
+        .map(rowToTask)
+    } catch { return [] }
+  },
+
+  deleteWithChildren: (id: string): void => {
+    try { db.runSync(`DELETE FROM tasks WHERE id = ? OR parentId = ?`, [id, id]) } catch {}
+  },
+
+  cleanOldChildren: (cutoff: string): void => {
+    try {
+      db.runSync(
+        `DELETE FROM tasks WHERE parentId IS NOT NULL AND date < ? AND completed = 1`,
+        [cutoff]
+      )
+    } catch {}
   },
 
   insert: (task: Task): void => {
@@ -111,6 +162,12 @@ export const WorkoutsDB = {
 // ─── ExercisesDB ──────────────────────────────────────────────────────────────
 
 export const ExercisesDB = {
+  getAll: (): Exercise[] => {
+    try {
+      return db.getAllSync<Exercise>('SELECT * FROM exercises ORDER BY workoutId, orderIndex ASC')
+    } catch { return [] }
+  },
+
   getByWorkout: (workoutId: string): Exercise[] => {
     try {
       return db.getAllSync<Exercise>(

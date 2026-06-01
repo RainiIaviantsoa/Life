@@ -1,4 +1,5 @@
 import { SectionLabel } from "@/components/ui";
+import { SwipeableRow } from "@/components/ui/SwipeableRow";
 import { monthISO, todayISO } from "@/database";
 import { useFinanceStore } from "@/store/financeStore";
 import type { FinanceCategory, FinanceEntry, FinanceType } from "@/types";
@@ -96,7 +97,7 @@ function TransactionItem({
 type Filter = "today" | "week" | "month";
 
 export default function FinanceScreen() {
-  const { entries, budget, load, addEntry, setBudgetLimit } = useFinanceStore();
+  const { entries, budget, load, addEntry, deleteEntry, setBudgetLimit } = useFinanceStore();
   const [filter, setFilter] = useState<Filter>("today");
   const [showSheet, setShowSheet] = useState(false);
   const [sheetType, setSheetType] = useState<FinanceType>("expense");
@@ -308,11 +309,19 @@ export default function FinanceScreen() {
           ) : (
             <View style={st.txCard}>
               {filtered.map((tx, i) => (
-                <TransactionItem
+                <SwipeableRow
                   key={tx.id}
-                  tx={tx}
-                  isLast={i === filtered.length - 1}
-                />
+                  rightActions={[
+                    {
+                      label: 'Supprimer',
+                      emoji: '🗑️',
+                      color: '#FF5C5C',
+                      onPress: () => deleteEntry(tx.id),
+                    },
+                  ]}
+                >
+                  <TransactionItem tx={tx} isLast={i === filtered.length - 1} />
+                </SwipeableRow>
               ))}
             </View>
           )}

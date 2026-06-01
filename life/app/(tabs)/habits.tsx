@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from 'react'
 import {
+  Alert,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { SwipeableRow } from '@/components/ui/SwipeableRow'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
 import { useState } from 'react'
@@ -75,7 +77,7 @@ function HabitItem({ habit, onToggle }: { habit: Habit; onToggle: (id: string) =
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HabitsScreen() {
-  const { habits, load, addHabit, toggleHabit } = useHabitsStore()
+  const { habits, load, addHabit, toggleHabit, deleteHabit } = useHabitsStore()
   const [showSheet, setShowSheet] = useState(false)
   const [newName,   setNewName]   = useState('')
   const [newEmoji,  setNewEmoji]  = useState('🎯')
@@ -122,7 +124,28 @@ export default function HabitsScreen() {
             <Text style={st.empty}>Crée ta première habitude 💪</Text>
           ) : (
             habits.map(habit => (
-              <HabitItem key={habit.id} habit={habit} onToggle={toggleHabit} />
+              <SwipeableRow
+                key={habit.id}
+                rightActions={[
+                  {
+                    label: 'Supprimer',
+                    emoji: '🗑️',
+                    color: '#FF5C5C',
+                    onPress: () => {
+                      Alert.alert(
+                        'Supprimer l\'habitude',
+                        `Supprimer "${habit.name}" et tout son historique ?`,
+                        [
+                          { text: 'Annuler', style: 'cancel' },
+                          { text: 'Supprimer', style: 'destructive', onPress: () => deleteHabit(habit.id) },
+                        ]
+                      )
+                    },
+                  },
+                ]}
+              >
+                <HabitItem habit={habit} onToggle={() => toggleHabit(habit.id)} />
+              </SwipeableRow>
             ))
           )}
 

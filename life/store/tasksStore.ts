@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { TasksDB, generateId } from '@/database'
+import { generateRecurringTasks } from '@/utils/recurrence'
 import type { Task, Priority, Recurrence } from '@/types'
 
 interface TasksState {
@@ -7,7 +8,8 @@ interface TasksState {
   load:       () => void
   addTask:    (title: string, priority: Priority, recurrence: Recurrence, date: string, time?: string) => void
   toggleTask: (id: string) => void
-  deleteTask: (id: string) => void
+  deleteTask: (id: string, deleteAll?: boolean) => void
+  updateTask: (id: string, fields: Partial<Task>) => void
 }
 
 export const useTasksStore = create<TasksState>((set, get) => ({
@@ -28,9 +30,13 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       createdAt:  new Date().toISOString(),
     }
     TasksDB.insert(task)
-    get().load()
 
-    // Programmer notification si heure définie
+    // For recurring tasks: generate today's child immediately
+    if (recurrence !== 'none') {
+      generateRecurringTasks()
+    }
+
+    // Schedule notification if time is set
     if (task.time) {
       const { scheduleTaskNotification } = await import('@/utils/notifications')
       await scheduleTaskNotification({
@@ -40,13 +46,14 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         time:  task.time,
       })
     }
+
+    get().load()
   },
 
   toggleTask: async (id) => {
     const task = get().tasks.find(t => t.id === id)
     if (!task) return
 
-    // Annuler la notification si la tâche devient complétée
     if (!task.completed) {
       const { cancelTaskNotification } = await import('@/utils/notifications')
       await cancelTaskNotification(id)
@@ -56,10 +63,26 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     get().load()
   },
 
-  deleteTask: async (id) => {
+  updateTask: (id, fields) => {
+    TasksDB.update(id, fields)
+    get().load()
+  },
+
+  deleteTask: async (id, deleteAll = false) => {
+    const task = get().tasks.find(t => t.id === id)
+    if (!task) return
+
     const { cancelTaskNotification } = await import('@/utils/notifications')
     await cancelTaskNotification(id)
-    TasksDB.delete(id)
+
+    if (deleteAll) {
+      // If it's a child, delete its parent + all siblings. If it's a parent, delete itself + children.
+      const rootId = task.parentId ?? id
+      TasksDB.deleteWithChildren(rootId)
+    } else {
+      TasksDB.delete(id)
+    }
+
     get().load()
   },
 }))

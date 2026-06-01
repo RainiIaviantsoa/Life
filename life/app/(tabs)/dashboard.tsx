@@ -73,21 +73,30 @@ export default function DashboardScreen() {
               {dayLabel}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push("/settings")}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: Colors.bg2,
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: 2,
-            }}
-            activeOpacity={0.75}
-          >
-            <Text style={{ fontSize: 18 }}>⚙️</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/stats")}
+              style={{
+                width: 40, height: 40, borderRadius: 99,
+                backgroundColor: '#0099FF1F',
+                alignItems: "center", justifyContent: "center",
+              }}
+              activeOpacity={0.75}
+            >
+              <Text style={{ fontSize: 18 }}>📊</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/settings")}
+              style={{
+                width: 40, height: 40, borderRadius: 99,
+                backgroundColor: Colors.bg2,
+                alignItems: "center", justifyContent: "center",
+              }}
+              activeOpacity={0.75}
+            >
+              <Text style={{ fontSize: 18 }}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 4 StatCards */}
