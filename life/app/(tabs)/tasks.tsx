@@ -19,7 +19,7 @@ import { format, addDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useFocusEffect } from 'expo-router'
 import { useTasksStore } from '@/store/tasksStore'
-import { todayISO } from '@/database'
+import { TasksDB, todayISO } from '@/database'
 import type { Priority, Recurrence, Task } from '@/types'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -86,11 +86,12 @@ function sortTasks(list: Task[]): Task[] {
 // ─── TaskItem ─────────────────────────────────────────────────────────────────
 
 interface TaskItemProps {
-  task:     Task
-  onToggle: () => void
+  task:          Task
+  onToggle:      () => void
+  onToggleMIT?:  () => void
 }
 
-function TaskItem({ task, onToggle }: TaskItemProps) {
+function TaskItem({ task, onToggle, onToggleMIT }: TaskItemProps) {
   const p = PRIORITY_CFG[task.priority] ?? PRIORITY_CFG.medium
 
   return (
@@ -121,6 +122,13 @@ function TaskItem({ task, onToggle }: TaskItemProps) {
           <View style={{ backgroundColor: p.bg, borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}>
             <Text style={{ fontSize: 10, fontWeight: '700', color: p.text }}>{p.label}</Text>
           </View>
+
+          {/* Bouton MIT */}
+          {onToggleMIT && (
+            <TouchableOpacity onPress={(e) => { e.stopPropagation?.(); onToggleMIT() }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={{ fontSize: 18, opacity: task.isMIT ? 1 : 0.25 }}>⭐</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Ligne secondaire : heure + récurrence */}
@@ -260,6 +268,18 @@ export default function TasksScreen() {
     }
   }
 
+  const handleToggleMIT = (task: Task) => {
+    if (!task.isMIT) {
+      const activeMITs = tasks.filter(t => t.isMIT && t.date === today && !t.completed)
+      if (activeMITs.length >= 3) {
+        Alert.alert('Limite atteinte', "Tu as déjà 3 priorités. Retire-en une d'abord.")
+        return
+      }
+    }
+    TasksDB.toggleMIT(task.id)
+    load()
+  }
+
   const handlePostpone = (task: Task) => {
     const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd')
     updateTask(task.id, { date: tomorrow })
@@ -293,7 +313,7 @@ export default function TasksScreen() {
         },
       ]}
     >
-      <TaskItem task={task} onToggle={() => toggleTask(task.id)} />
+      <TaskItem task={task} onToggle={() => toggleTask(task.id)} onToggleMIT={() => handleToggleMIT(task)} />
     </SwipeableRow>
   )
 

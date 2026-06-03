@@ -1,17 +1,15 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
 
-import { initDatabase } from '@/database';
-import { TasksDB, todayISO } from '@/database';
+import { initSchema, TasksDB, todayISO } from '@/database';
 import { Colors } from '@/constants/theme';
 import {
   requestNotificationPermission,
@@ -19,7 +17,6 @@ import {
   scheduleHabitReminder,
 } from '@/utils/notifications';
 import { generateRecurringTasks, cleanOldRecurringTasks } from '@/utils/recurrence';
-import { SplashScreen as AppSplashScreen } from '@/components/SplashScreen';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -45,95 +42,115 @@ const AppTheme = {
 export default function RootLayout() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
+  const [goOnboarding, setGoOnboarding] = useState(false);
 
-  const [fontsLoaded, fontError] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
+  // Phase 1: DB init + onboarding check (no navigation here)
   useEffect(() => {
-    if (fontError) throw fontError;
-  }, [fontError]);
+    const failsafe = setTimeout(() => {
+      console.warn('[SETUP] failsafe triggered')
+      setIsReady(true)
+    }, 3000)
 
-  useEffect(() => {
     const setup = async () => {
+      try { initSchema() } catch (e) { console.error('[DB INIT ERROR]', e) }
+
       try {
-        await initDatabase();
-        generateRecurringTasks();
-        setTimeout(() => cleanOldRecurringTasks(), 2000);
-
-        const onboarded = await AsyncStorage.getItem('onboarded');
-        if (!onboarded) {
-          setIsReady(true);
-          router.replace('/onboarding');
-          return;
-        }
+        const onboarded = await AsyncStorage.getItem('onboarded')
+        if (!onboarded) setGoOnboarding(true)
       } catch (e) {
-        console.error('DB init failed', e);
+        console.error('[ONBOARDING ERROR]', e)
       }
-      setIsReady(true);
-    };
-    setup();
-  }, []);
+
+      clearTimeout(failsafe)
+      setIsReady(true)
+    }
+
+    setup().catch(e => {
+      console.error('[SETUP FATAL]', e)
+      clearTimeout(failsafe)
+      setIsReady(true)
+    })
+
+    return () => clearTimeout(failsafe)
+  }, [])
+
+  // Phase 2: navigate AFTER the Stack is mounted (isReady committed by React)
+  useEffect(() => {
+    if (!isReady) return
+
+    if (goOnboarding) {
+      router.replace('/onboarding')
+      return
+    }
+
+    setTimeout(() => {
+      try {
+        generateRecurringTasks()
+        cleanOldRecurringTasks()
+      } catch (e) {
+        console.error('[RECURRENCE ERROR]', e)
+      }
+    }, 500)
+
+    requestNotificationPermission().then(async (granted) => {
+      if (!granted) return
+      try {
+        const todayTasks = TasksDB.getByDate(todayISO())
+        const pending    = todayTasks.filter((t: any) => !t.completed)
+        await scheduleDailyMorningReminder(pending.length)
+        await scheduleHabitReminder()
+      } catch (e) {
+        console.error('[NOTIFICATION ERROR]', e)
+      }
+    }).catch((e) => console.error('[NOTIFICATION PERMISSION ERROR]', e))
+  }, [isReady])
 
   useEffect(() => {
-    if (!fontsLoaded || !isReady) return;
-    SplashScreen.hideAsync();
+    if (isReady) SplashScreen.hideAsync()
+  }, [isReady])
 
-    const setup = async () => {
-      const granted = await requestNotificationPermission();
-      if (!granted) return;
-
-      const today      = todayISO();
-      const todayTasks = TasksDB.getByDate(today);
-      const pending    = todayTasks.filter(t => !t.completed);
-      await scheduleDailyMorningReminder(pending.length);
-      await scheduleHabitReminder();
-    };
-    setup();
-  }, [fontsLoaded, isReady]);
-
-  if (!fontsLoaded || !isReady) {
-    return <AppSplashScreen />;
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#6C47FF', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 48 }}>⚡</Text>
+        <Text style={{ fontSize: 32, fontWeight: '900', color: '#fff', marginTop: 16 }}>Life</Text>
+      </View>
+    );
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <SafeAreaProvider>
-      <ThemeProvider value={AppTheme}>
-        <View style={{ flex: 1, backgroundColor: Colors.bg0 }}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="settings"
-              options={{
-                title: 'Paramètres',
-                headerStyle: { backgroundColor: Colors.bg0 },
-                headerTintColor: Colors.text,
-                headerShadowVisible: false,
-              }}
-            />
-            <Stack.Screen
-              name="modal"
-              options={{
-                presentation:    'modal',
-                headerStyle:     { backgroundColor: Colors.bg0 },
-                headerTintColor: Colors.text,
-                headerShadowVisible: false,
-              }}
-            />
-            <Stack.Screen
-              name="stats"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </View>
-        <StatusBar style="dark" />
-      </ThemeProvider>
-    </SafeAreaProvider>
+      <SafeAreaProvider>
+        <ThemeProvider value={AppTheme}>
+          <View style={{ flex: 1, backgroundColor: Colors.bg0 }}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="settings"
+                options={{
+                  title:               'Paramètres',
+                  headerStyle:         { backgroundColor: Colors.bg0 },
+                  headerTintColor:     Colors.text,
+                  headerShadowVisible: false,
+                }}
+              />
+              <Stack.Screen
+                name="modal"
+                options={{
+                  presentation:        'modal',
+                  headerStyle:         { backgroundColor: Colors.bg0 },
+                  headerTintColor:     Colors.text,
+                  headerShadowVisible: false,
+                }}
+              />
+              <Stack.Screen name="stats"      options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </View>
+          <StatusBar style="dark" />
+        </ThemeProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

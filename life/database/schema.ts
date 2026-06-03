@@ -3,7 +3,6 @@ import { getDb } from './client';
 export async function initDatabase(): Promise<void> {
   const db = await getDb();
 
-  // Drop & recreate to pick up schema changes during development
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS tasks (
       id          TEXT PRIMARY KEY NOT NULL,
@@ -66,9 +65,6 @@ export async function initDatabase(): Promise<void> {
       currentSpent  REAL NOT NULL DEFAULT 0
     );
 
-    -- Migration : ajoute la colonne time si absente (idempotent)
-    -- Géré dans le code async ci-dessous.
-
     CREATE TABLE IF NOT EXISTS habits (
       id                TEXT PRIMARY KEY NOT NULL,
       name              TEXT NOT NULL,
@@ -77,12 +73,70 @@ export async function initDatabase(): Promise<void> {
       lastCompletedDate TEXT,
       createdAt         TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS highlights (
+      id        TEXT PRIMARY KEY NOT NULL,
+      text      TEXT NOT NULL,
+      date      TEXT NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_highlights_date ON highlights(date);
+
+    CREATE TABLE IF NOT EXISTS pots (
+      id            TEXT PRIMARY KEY NOT NULL,
+      name          TEXT NOT NULL,
+      emoji         TEXT NOT NULL DEFAULT '🏦',
+      color         TEXT NOT NULL DEFAULT '#6C47FF',
+      targetAmount  REAL NOT NULL DEFAULT 0,
+      currentAmount REAL NOT NULL DEFAULT 0,
+      deadline      TEXT,
+      createdAt     TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pots_createdAt ON pots(createdAt);
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id        TEXT PRIMARY KEY NOT NULL,
+      name      TEXT NOT NULL,
+      emoji     TEXT NOT NULL DEFAULT '📱',
+      amount    REAL NOT NULL,
+      frequency TEXT NOT NULL DEFAULT 'monthly',
+      nextDate  TEXT NOT NULL,
+      category  TEXT NOT NULL DEFAULT 'other',
+      active    INTEGER DEFAULT 1,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS wishlist (
+      id         TEXT PRIMARY KEY NOT NULL,
+      name       TEXT NOT NULL,
+      amount     REAL NOT NULL,
+      emoji      TEXT DEFAULT '🛍️',
+      addedDate  TEXT NOT NULL,
+      unlockDate TEXT NOT NULL,
+      purchased  INTEGER DEFAULT 0,
+      skipped    INTEGER DEFAULT 0,
+      createdAt  TEXT NOT NULL
+    );
   `);
 
-  // Migration : ajoute time si la table tasks existait sans cette colonne
-  try {
-    await db.execAsync('ALTER TABLE tasks ADD COLUMN time TEXT');
-  } catch {
-    // Colonne déjà présente — OK
-  }
+  const safeAlter = async (table: string, column: string, definition: string) => {
+    try {
+      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    } catch {}
+  };
+
+  await safeAlter('tasks',     'time',              'TEXT');
+  await safeAlter('tasks',     'isMIT',             'INTEGER DEFAULT 0');
+  await safeAlter('habits',    'freezesAvailable',  'INTEGER DEFAULT 2');
+  await safeAlter('habits',    'freezesUsed',       'INTEGER DEFAULT 0');
+  await safeAlter('habits',    'missedYesterday',   'INTEGER DEFAULT 0');
+  await safeAlter('habits',    'identityStatement', 'TEXT');
+  await safeAlter('habits',    'totalCompletions',  'INTEGER DEFAULT 0');
+  await safeAlter('habits',    'whenField',         'TEXT');
+  await safeAlter('habits',    'whereField',        'TEXT');
+  await safeAlter('exercises', 'rpe',               'REAL');
+  await safeAlter('exercises', 'rir',               'INTEGER');
 }

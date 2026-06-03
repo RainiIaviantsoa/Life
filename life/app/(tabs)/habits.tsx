@@ -38,7 +38,9 @@ function streakCircleBg(streak: number) {
 
 // ─── HabitItem ────────────────────────────────────────────────────────────────
 
-function HabitItem({ habit, onToggle }: { habit: Habit; onToggle: (id: string) => void }) {
+function HabitItem({
+  habit, onToggle, onFreeze,
+}: { habit: Habit; onToggle: (id: string) => void; onFreeze: (id: string) => void }) {
   const scale = useRef(new Animated.Value(1)).current
 
   const handleToggle = () => {
@@ -57,9 +59,40 @@ function HabitItem({ habit, onToggle }: { habit: Habit; onToggle: (id: string) =
       </View>
       <View style={{ flex: 1 }}>
         <Text style={st.habitName}>{habit.name}</Text>
+        {habit.identityStatement ? (
+          <Text style={st.habitIdentity}>
+            "Je suis quelqu'un qui {habit.identityStatement}"
+          </Text>
+        ) : null}
         <Text style={st.habitStreak}>
           {habit.streak > 0 ? `🔥 ${habit.streak} jours` : 'À commencer'}
         </Text>
+        {habit.totalCompletions > 0 && (
+          <Text style={st.habitTotal}>
+            {habit.totalCompletions} {habit.identityStatement ? 'votes pour cette identité 🗳️' : `validation${habit.totalCompletions > 1 ? 's' : ''} au total`}
+          </Text>
+        )}
+        {(habit.whenField || habit.whereField) && (
+          <View style={st.contextBadge}>
+            <Text style={st.contextBadgeText}>
+              📍 {[habit.whenField, habit.whereField].filter(Boolean).join(' — ')}
+            </Text>
+          </View>
+        )}
+        {habit.missedYesterday === 1 && (
+          <View style={st.missWarning}>
+            <Text style={{ fontSize: 14 }}>⚠️</Text>
+            <Text style={st.missWarningText}>Ne manque pas aujourd'hui !</Text>
+          </View>
+        )}
+        {habit.freezesAvailable > 0 && !habit.completedToday && (
+          <TouchableOpacity onPress={() => onFreeze(habit.id)} style={st.freezeBtn} activeOpacity={0.75}>
+            <Text style={{ fontSize: 14 }}>🧊</Text>
+            <Text style={st.freezeBtnText}>
+              Utiliser un joker ({habit.freezesAvailable} restant{habit.freezesAvailable > 1 ? 's' : ''})
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
       <Animated.View style={{ transform: [{ scale }] }}>
         <TouchableOpacity
@@ -77,24 +110,32 @@ function HabitItem({ habit, onToggle }: { habit: Habit; onToggle: (id: string) =
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HabitsScreen() {
-  const { habits, load, addHabit, toggleHabit, deleteHabit } = useHabitsStore()
-  const [showSheet, setShowSheet] = useState(false)
-  const [newName,   setNewName]   = useState('')
-  const [newEmoji,  setNewEmoji]  = useState('🎯')
+  const { habits, load, addHabit, toggleHabit, deleteHabit, useFreeze } = useHabitsStore()
+  const [showSheet,          setShowSheet]          = useState(false)
+  const [newName,            setNewName]            = useState('')
+  const [newEmoji,           setNewEmoji]           = useState('🎯')
+  const [identityStatement,  setIdentityStatement]  = useState('')
+  const [whenField,          setWhenField]          = useState('')
+  const [whereField,         setWhereField]         = useState('')
 
   useFocusEffect(useCallback(() => { load() }, []))
 
   const completedCount = habits.filter(h => h.completedToday).length
-  const bestStreak     = habits.length > 0 ? Math.max(...habits.map(h => h.streak)) : 0
+  const totalFreezes   = habits.reduce((sum, h) => sum + (h.freezesAvailable ?? 0), 0)
   const topHabits      = [...habits].sort((a, b) => b.streak - a.streak).slice(0, 3)
   const emojiRows      = [EMOJI_PRESETS.slice(0, 6), EMOJI_PRESETS.slice(6, 12)]
 
+  const resetForm = () => {
+    setNewName(''); setNewEmoji('🎯')
+    setIdentityStatement(''); setWhenField(''); setWhereField('')
+  }
+
   const handleCreate = () => {
     if (!newName.trim()) return
-    addHabit(newName.trim(), newEmoji)
-    setNewName(''); setNewEmoji('🎯'); setShowSheet(false)
+    addHabit(newName.trim(), newEmoji, identityStatement.trim() || undefined, whenField.trim() || undefined, whereField.trim() || undefined)
+    resetForm(); setShowSheet(false)
   }
-  const handleCancel = () => { setNewName(''); setNewEmoji('🎯'); setShowSheet(false) }
+  const handleCancel = () => { resetForm(); setShowSheet(false) }
 
   return (
     <SafeAreaView style={st.safe} edges={['top']}>
@@ -114,8 +155,8 @@ export default function HabitsScreen() {
 
           {/* Stats */}
           <View style={st.statsRow}>
-            <StatCard value={`${completedCount} / ${habits.length}`} label="Validées"       color="#00C896" />
-            <StatCard value={`🔥 ${bestStreak}`}                     label="Meilleur streak" color="#FF3CAC" />
+            <StatCard value={`${completedCount} / ${habits.length}`} label="Validées"      color="#00C896" />
+            <StatCard value={`🧊 ${totalFreezes}`}                   label="Jokers restants" color="#6C47FF" />
           </View>
 
           {/* Liste */}
@@ -144,7 +185,7 @@ export default function HabitsScreen() {
                   },
                 ]}
               >
-                <HabitItem habit={habit} onToggle={() => toggleHabit(habit.id)} />
+                <HabitItem habit={habit} onToggle={() => toggleHabit(habit.id)} onFreeze={useFreeze} />
               </SwipeableRow>
             ))
           )}
@@ -191,6 +232,45 @@ export default function HabitsScreen() {
                   </View>
                 ))}
               </View>
+              {/* Identity statement */}
+              <View style={{ marginTop: 4 }}>
+                <Text style={st.sheetLabel}>Déclaration d'identité (optionnel)</Text>
+                <View style={st.identityPrefix}>
+                  <Text style={st.identityPrefixText}>Je suis quelqu'un qui…</Text>
+                </View>
+                <TextInput
+                  style={[st.sheetInput, { marginTop: 8, marginBottom: 0 }]}
+                  value={identityStatement}
+                  onChangeText={setIdentityStatement}
+                  placeholder="fait du sport chaque jour"
+                  placeholderTextColor="#A0A0B8"
+                  selectionColor="#00C896"
+                />
+              </View>
+
+              {/* Implementation intention */}
+              <View style={{ marginTop: 16, marginBottom: 16 }}>
+                <Text style={st.sheetLabel}>Quand et où ? (optionnel)</Text>
+                <View style={{ gap: 8 }}>
+                  <TextInput
+                    style={[st.sheetInput, { marginBottom: 0 }]}
+                    value={whenField}
+                    onChangeText={setWhenField}
+                    placeholder="Après mon café du matin..."
+                    placeholderTextColor="#A0A0B8"
+                    selectionColor="#00C896"
+                  />
+                  <TextInput
+                    style={[st.sheetInput, { marginBottom: 0 }]}
+                    value={whereField}
+                    onChangeText={setWhereField}
+                    placeholder="Dans ma chambre / Au bureau..."
+                    placeholderTextColor="#A0A0B8"
+                    selectionColor="#00C896"
+                  />
+                </View>
+              </View>
+
               <TouchableOpacity style={[st.createBtn, !newName.trim() && { opacity: 0.45 }]} onPress={handleCreate} disabled={!newName.trim()} activeOpacity={0.85}>
                 <Text style={st.createBtnText}>Créer</Text>
               </TouchableOpacity>
@@ -220,8 +300,27 @@ const st = StyleSheet.create({
 
   habitCard: { backgroundColor: '#fff', borderRadius: 20, borderLeftWidth: 4, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#6C47FF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   habitEmoji: { width: 44, height: 44, borderRadius: 99, alignItems: 'center', justifyContent: 'center' },
-  habitName:   { fontSize: 15, fontWeight: '700', color: '#0D0D1A', marginBottom: 3 },
-  habitStreak: { fontSize: 12, color: '#6B6B85' },
+  habitName:     { fontSize: 15, fontWeight: '700', color: '#0D0D1A', marginBottom: 2 },
+  habitIdentity: { fontSize: 11, color: '#00C896', fontWeight: '600', fontStyle: 'italic', marginBottom: 3 },
+  habitStreak:   { fontSize: 12, color: '#6B6B85' },
+  habitTotal:    { fontSize: 11, color: '#A0A0B8', marginTop: 1 },
+  contextBadge: {
+    backgroundColor: '#6C47FF1F', borderRadius: 12,
+    paddingHorizontal: 10, paddingVertical: 5, marginTop: 6, alignSelf: 'flex-start',
+  },
+  contextBadgeText: { fontSize: 12, color: '#6C47FF', fontWeight: '600' },
+  missWarning: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#FF95001F', borderRadius: 99,
+    paddingHorizontal: 10, paddingVertical: 4, marginTop: 6, alignSelf: 'flex-start',
+  },
+  missWarningText: { fontSize: 11, fontWeight: '700', color: '#B36800' },
+  freezeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#6C47FF1F', borderRadius: 99,
+    paddingHorizontal: 10, paddingVertical: 4, marginTop: 6, alignSelf: 'flex-start',
+  },
+  freezeBtnText: { fontSize: 11, fontWeight: '700', color: '#6C47FF' },
   checkBtn:     { width: 36, height: 36, borderRadius: 99, backgroundColor: '#00C8961F', borderWidth: 2, borderColor: '#00C896', alignItems: 'center', justifyContent: 'center' },
   checkBtnDone: { backgroundColor: '#00C896', borderColor: '#00C896' },
   checkMark:    { fontSize: 18, color: '#00C896', fontWeight: '700', lineHeight: 20 },
@@ -239,6 +338,8 @@ const st = StyleSheet.create({
   sheetTitle: { fontSize: 17, fontWeight: '800', color: '#0D0D1A', textAlign: 'center', marginBottom: 16 },
   sheetInput: { backgroundColor: '#F7F7FA', borderRadius: 14, padding: 14, fontSize: 15, color: '#0D0D1A', marginBottom: 14 },
   sheetLabel: { fontSize: 12, fontWeight: '700', color: '#A0A0B8', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 },
+  identityPrefix: { backgroundColor: '#00C8961F', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center' },
+  identityPrefixText: { fontSize: 14, fontWeight: '700', color: '#007A5E' },
   emojiItem: { width: 46, height: 46, borderRadius: 12, backgroundColor: '#F7F7FA', alignItems: 'center', justifyContent: 'center' },
   createBtn:     { backgroundColor: '#00C896', borderRadius: 14, padding: 15, alignItems: 'center', marginBottom: 4 },
   createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

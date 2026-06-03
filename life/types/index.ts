@@ -16,6 +16,7 @@ export interface Task {
   recurrence: Recurrence
   parentId?:  string
   createdAt:  string
+  isMIT?:     number        // 1 = Most Important Task
 }
 
 export interface Workout {
@@ -36,6 +37,8 @@ export interface Exercise {
   reps:       number | null
   weight:     number | null
   orderIndex: number
+  rpe:        number | null
+  rir:        number | null
 }
 
 export interface FinanceEntry {
@@ -63,4 +66,48 @@ export interface Habit {
   lastCompletedDate: string | null
   createdAt:         string
   completedToday:    boolean
+  freezesAvailable:  number
+  freezesUsed:       number
+  missedYesterday:   number
+  identityStatement: string | null
+  totalCompletions:  number
+  whenField:         string | null
+  whereField:        string | null
+}
+
+export interface Pot {
+  id:            string
+  name:          string
+  emoji:         string
+  color:         string
+  targetAmount:  number
+  currentAmount: number
+  deadline:      string | null
+  createdAt:     string
+}
+
+export type SubFrequency = 'monthly' | 'yearly' | 'weekly'
+
+export interface Subscription {
+  id:        string
+  name:      string
+  emoji:     string
+  amount:    number
+  frequency: SubFrequency
+  nextDate:  string
+  category:  string
+  active:    number
+  createdAt: string
+}
+
+export interface WishlistItem {
+  id:         string
+  name:       string
+  amount:     number
+  emoji:      string
+  addedDate:  string
+  unlockDate: string
+  purchased:  number
+  skipped:    number
+  createdAt:  string
 }

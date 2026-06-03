@@ -3,20 +3,31 @@ import { WorkoutsDB, ExercisesDB, generateId, todayISO } from '@/database'
 import type { Workout, Exercise } from '@/types'
 
 interface WorkoutState {
-  workouts:     Workout[]
-  exercises:    Record<string, Exercise[]>
-  load:         () => void
-  addWorkout:   (name: string, type: string, duration: number) => string
-  addExercise:  (workoutId: string, name: string, sets: number, reps: number, weight?: number) => void
-  deleteWorkout:(id: string) => void
-  loadExercises:(workoutId: string) => void
+  workouts:            Workout[]
+  exercises:           Record<string, Exercise[]>
+  load:                () => void
+  addWorkout:          (name: string, type: string, duration: number) => string
+  addExercise:         (workoutId: string, name: string, sets: number, reps: number, weight?: number) => void
+  deleteWorkout:       (id: string) => void
+  loadExercises:       (workoutId: string) => void
+  clearExercisesCache: () => void
 }
 
 export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   workouts:  [],
   exercises: {},
 
-  load: () => set({ workouts: WorkoutsDB.getAll() }),
+  load: () => {
+    try {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - 30)
+      const cutoffStr = cutoff.toISOString().split('T')[0]
+      set({ workouts: WorkoutsDB.getAll().filter(w => w.date >= cutoffStr) })
+    } catch (e) {
+      console.error('[WORKOUTS LOAD ERROR]', e)
+      set({ workouts: [] })
+    }
+  },
 
   addWorkout: (name, type, duration) => {
     const id = generateId()
@@ -39,6 +50,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       sets,
       reps,
       weight:     weight ?? null,
+      rpe:        null,
+      rir:        null,
       orderIndex: existing.length,
     })
     get().loadExercises(workoutId)
@@ -53,4 +66,6 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     const exs = ExercisesDB.getByWorkout(workoutId)
     set(s => ({ exercises: { ...s.exercises, [workoutId]: exs } }))
   },
+
+  clearExercisesCache: () => set({ exercises: {} }),
 }))

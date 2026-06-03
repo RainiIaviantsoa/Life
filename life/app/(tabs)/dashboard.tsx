@@ -1,6 +1,6 @@
 import { Card, PrimaryButton, SectionLabel, StatCard } from "@/components/ui";
 import { Colors } from "@/constants/theme";
-import { todayISO } from "@/database";
+import { HighlightsDB, todayISO } from "@/database";
 import { useFinanceStore } from "@/store/financeStore";
 import { useHabitsStore } from "@/store/habitsStore";
 import { useTasksStore } from "@/store/tasksStore";
@@ -8,9 +8,51 @@ import { useWorkoutStore } from "@/store/workoutStore";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const ds = StyleSheet.create({
+  // Highlight card
+  highlightCard: {
+    backgroundColor: '#6C47FF', borderRadius: 24, padding: 20, marginBottom: 16,
+    shadowColor: '#6C47FF', shadowOpacity: 0.35, shadowRadius: 16, elevation: 8,
+  },
+  highlightLabel:       { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 },
+  highlightText:        { fontSize: 20, fontWeight: '800', color: '#fff', lineHeight: 26 },
+  highlightDone:        { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 8 },
+  highlightPlaceholder: { fontSize: 16, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginTop: 4 },
+  highlightCompleteBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 99,
+    paddingHorizontal: 14, paddingVertical: 6, alignSelf: 'flex-start', marginTop: 10,
+  },
+  highlightCompleteBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  // MITs
+  mitsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  mitsTitle:  { fontSize: 11, fontWeight: '700', color: '#A0A0B8', letterSpacing: 0.8, textTransform: 'uppercase' },
+  mitsCount:  { fontSize: 11, color: '#6C47FF', fontWeight: '600' },
+  mitsEmpty:  { fontSize: 13, color: '#A0A0B8', fontStyle: 'italic' },
+  mitRow: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6,
+    borderLeftWidth: 4,
+    shadowColor: '#6C47FF', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  mitTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: '#0D0D1A' },
+
+  // Modal
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 100 },
+  modalSheet:   { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
+  modalTitle:   { fontSize: 18, fontWeight: '800', color: '#0D0D1A', marginBottom: 8 },
+  modalSub:     { fontSize: 13, color: '#6B6B85', marginBottom: 14 },
+  modalInput:   { backgroundColor: '#F7F7FA', borderRadius: 14, padding: 14, fontSize: 15, color: '#0D0D1A', minHeight: 60 },
+  modalBtn:     { backgroundColor: '#6C47FF', borderRadius: 14, padding: 15, alignItems: 'center', marginTop: 14 },
+  modalBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+})
 
 export default function DashboardScreen() {
   const { tasks, load: loadTasks } = useTasksStore();
@@ -18,12 +60,19 @@ export default function DashboardScreen() {
   const { entries, budget, load: loadFinance } = useFinanceStore();
   const { habits, load: loadHabits } = useHabitsStore();
 
+  const [savedHighlight,   setSavedHighlight]   = useState<any>(() => HighlightsDB.getByDate(todayISO()))
+  const [highlight,        setHighlight]        = useState('')
+  const [editingHighlight, setEditingHighlight] = useState(false)
+
+  const refreshHighlight = () => setSavedHighlight(HighlightsDB.getByDate(todayISO()))
+
   useFocusEffect(
     useCallback(() => {
       loadTasks();
       loadWorkouts();
       loadFinance();
       loadHabits();
+      refreshHighlight();
     }, []),
   );
 
@@ -35,6 +84,7 @@ export default function DashboardScreen() {
   const pendingTasks = todayTasks.filter((t) => !t.completed);
   const todayWorkout = workouts.find((w) => w.date === today) ?? null;
   const completedHabitsToday = habits.filter((h) => h.completedToday).length;
+  const mits = tasks.filter((t) => t.isMIT && t.date === today && !t.completed);
   const budgetPct =
     budget.limit > 0 ? Math.min(1, budget.spent / budget.limit) : 0;
 
@@ -97,6 +147,57 @@ export default function DashboardScreen() {
               <Text style={{ fontSize: 18 }}>⚙️</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* ── Highlight du jour ───────────────────────────────────────── */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => { setHighlight(savedHighlight?.text ?? ''); setEditingHighlight(true) }}
+        >
+          <View style={ds.highlightCard}>
+            <Text style={ds.highlightLabel}>⭐ HIGHLIGHT DU JOUR</Text>
+            {savedHighlight?.text ? (
+              <View>
+                <Text style={ds.highlightText}>{savedHighlight.text}</Text>
+                {savedHighlight.completed ? (
+                  <Text style={ds.highlightDone}>✅ Accompli aujourd'hui !</Text>
+                ) : (
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation?.(); HighlightsDB.complete(today); refreshHighlight() }}
+                    style={ds.highlightCompleteBtn}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={ds.highlightCompleteBtnText}>✓ Marquer comme fait</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <Text style={ds.highlightPlaceholder}>Tap pour définir ton highlight du jour...</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* ── MITs ────────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 16 }}>
+          <View style={ds.mitsHeader}>
+            <Text style={ds.mitsTitle}>🎯 TOP 3 PRIORITÉS</Text>
+            <Text style={ds.mitsCount}>{mits.length}/3</Text>
+          </View>
+          {mits.length === 0 ? (
+            <Text style={ds.mitsEmpty}>
+              Aucune MIT définie — va dans Tasks et épingle tes 3 priorités
+            </Text>
+          ) : (
+            mits.slice(0, 3).map((task, i) => (
+              <View
+                key={task.id}
+                style={[ds.mitRow, { borderLeftColor: i === 0 ? '#FF5C5C' : i === 1 ? '#FF9500' : '#6C47FF' }]}
+              >
+                <Text style={{ fontSize: 16 }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</Text>
+                <Text style={ds.mitTitle}>{task.title}</Text>
+              </View>
+            ))
+          )}
         </View>
 
         {/* 4 StatCards */}
@@ -352,6 +453,41 @@ export default function DashboardScreen() {
           />
         </Card>
       </ScrollView>
+
+      {/* ── Modal édition Highlight ──────────────────────────────────── */}
+      {editingHighlight && (
+        <View style={ds.modalOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setEditingHighlight(false)} />
+          <View style={ds.modalSheet}>
+            <Text style={ds.modalTitle}>⭐ Highlight du jour</Text>
+            <Text style={ds.modalSub}>
+              Si tu ne pouvais accomplir qu'UNE chose aujourd'hui, ce serait quoi ?
+            </Text>
+            <TextInput
+              value={highlight}
+              onChangeText={setHighlight}
+              placeholder="Ex: Finir la présentation client"
+              placeholderTextColor="#A0A0B8"
+              style={ds.modalInput}
+              autoFocus
+              multiline
+              selectionColor="#6C47FF"
+            />
+            <TouchableOpacity
+              onPress={() => {
+                if (!highlight.trim()) return
+                HighlightsDB.upsert(today, highlight.trim())
+                refreshHighlight()
+                setEditingHighlight(false)
+              }}
+              style={[ds.modalBtn, !highlight.trim() && { opacity: 0.45 }]}
+              activeOpacity={0.85}
+            >
+              <Text style={ds.modalBtnText}>Définir comme Highlight</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

@@ -142,19 +142,23 @@ export async function cancelHabitReminder() {
 
 // ─── Streak en danger ─────────────────────────────────────────────────────────
 
-export async function scheduleStreakDangerAlert(habitName: string, streak: number) {
+export async function scheduleStreakDangerAlert(habitName: string, streak: number, whenField?: string) {
   const id = `streak-danger-${habitName}`
   await cancelNotification(id)
 
   if (streak < 3) return
 
+  const body = whenField
+    ? `${whenField} → c'est le moment ! 🔥 Série de ${streak} jours`
+    : `Ta série de ${streak} jours pour "${habitName}" risque de se casser !`
+
   await Notifications.scheduleNotificationAsync({
     identifier: id,
     content: {
       title: '🔥 Streak en danger !',
-      body:   `Ta série de ${streak} jours pour "${habitName}" risque de se casser !`,
-      sound:  true,
-      data:   { type: 'streak' },
+      body,
+      sound: true,
+      data:  { type: 'streak' },
     },
     trigger: {
       hour:    20,

@@ -1,8 +1,10 @@
 export { initDatabase } from './schema';
+export { initSchema } from './sync';
 
 // ─── Sync namespace + helpers (used by dashboardStore) ───────────────────────
 export {
   TasksDB, FinancesDB, BudgetsDB, HabitsDB, WorkoutsDB, ExercisesDB,
+  HighlightsDB, PotsDB, SubscriptionsDB, WishlistDB,
   todayISO, monthISO, generateId,
 } from './sync';
 

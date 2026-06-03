@@ -15,7 +15,17 @@ interface TasksState {
 export const useTasksStore = create<TasksState>((set, get) => ({
   tasks: [],
 
-  load: () => set({ tasks: TasksDB.getAll() }),
+  load: () => {
+    try {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - 60)
+      const cutoffStr = cutoff.toISOString().split('T')[0]
+      set({ tasks: TasksDB.getAll().filter(t => t.date >= cutoffStr) })
+    } catch (e) {
+      console.error('[TASKS LOAD ERROR]', e)
+      set({ tasks: [] })
+    }
+  },
 
   addTask: async (title, priority, recurrence, date, time?) => {
     const task: Task = {

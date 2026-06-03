@@ -22,6 +22,8 @@ export interface Exercise {
   sets:       number | null;
   weight:     number | null;
   orderIndex: number;
+  rpe:        number | null;
+  rir:        number | null;
 }
 
 export interface WorkoutWithExercises extends Workout {
@@ -140,12 +142,14 @@ export async function createExercise(input: CreateExerciseInput): Promise<Exerci
     sets:       input.sets   ?? null,
     weight:     input.weight ?? null,
     orderIndex,
+    rpe:        null,
+    rir:        null,
   };
 
   await db.runAsync(
-    `INSERT INTO exercises (id, workoutId, name, reps, sets, weight, orderIndex)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [exercise.id, exercise.workoutId, exercise.name, exercise.reps, exercise.sets, exercise.weight, exercise.orderIndex]
+    `INSERT INTO exercises (id, workoutId, name, reps, sets, weight, orderIndex, rpe, rir)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [exercise.id, exercise.workoutId, exercise.name, exercise.reps, exercise.sets, exercise.weight, exercise.orderIndex, exercise.rpe, exercise.rir]
   );
 
   return exercise;

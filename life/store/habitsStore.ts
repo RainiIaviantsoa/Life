@@ -5,45 +5,51 @@ import type { Habit } from '@/types'
 interface HabitsState {
   habits:      Habit[]
   load:        () => void
-  addHabit:    (name: string, emoji: string) => void
+  addHabit:    (name: string, emoji: string, identityStatement?: string, whenField?: string, whereField?: string) => void
   toggleHabit: (id: string) => void
   deleteHabit: (id: string) => void
+  useFreeze:   (id: string) => void
 }
 
 export const useHabitsStore = create<HabitsState>((set, get) => ({
   habits: [],
 
   load: () => {
-    const today = todayISO()
-    const raw   = HabitsDB.getAll()
-    const habits: Habit[] = raw.map(h => {
-      const completedToday = h.lastCompletedDate === today
-      // Reset streak si un jour a été manqué
-      if (!completedToday && h.lastCompletedDate) {
-        const last = new Date(h.lastCompletedDate)
-        const diff = Math.floor((Date.now() - last.getTime()) / 86_400_000)
-        if (diff > 1) HabitsDB.resetIfMissed(h.id, today)
-      }
-      return { ...h, completedToday }
-    })
-    set({ habits })
+    try {
+      const today = todayISO()
+      HabitsDB.checkStreaks(today)
+      const raw   = HabitsDB.getAll()
+      const habits: Habit[] = raw.map(h => ({
+        ...h,
+        completedToday:   h.lastCompletedDate === today,
+        freezesAvailable: h.freezesAvailable  ?? 2,
+        freezesUsed:      h.freezesUsed       ?? 0,
+        missedYesterday:  h.missedYesterday   ?? 0,
+        totalCompletions: h.totalCompletions  ?? 0,
+        identityStatement: h.identityStatement ?? null,
+        whenField:         h.whenField         ?? null,
+        whereField:        h.whereField        ?? null,
+      }))
+      set({ habits })
 
-    // Fire-and-forget : alertes streak en danger pour habitudes non validées
-    habits.forEach(async h => {
-      if (h.streak >= 3 && !h.completedToday) {
-        const { scheduleStreakDangerAlert } = await import('@/utils/notifications')
-        await scheduleStreakDangerAlert(h.name, h.streak)
-      }
-    })
+      habits.forEach(async h => {
+        if (h.streak >= 3 && !h.completedToday) {
+          const { scheduleStreakDangerAlert } = await import('@/utils/notifications')
+          await scheduleStreakDangerAlert(h.name, h.streak, h.whenField ?? undefined)
+        }
+      })
+    } catch (e) {
+      console.error('[HABITS LOAD ERROR]', e)
+      set({ habits: [] })
+    }
   },
 
-  addHabit: (name, emoji) => {
+  addHabit: (name, emoji, identityStatement, whenField, whereField) => {
     HabitsDB.insert({
-      id:        generateId(),
-      name,
-      emoji,
-      streak:    0,
-      createdAt: new Date().toISOString(),
+      id: generateId(), name, emoji, streak: 0, createdAt: new Date().toISOString(),
+      identityStatement: identityStatement || null,
+      whenField:         whenField         || null,
+      whereField:        whereField        || null,
     })
     get().load()
   },
@@ -66,6 +72,11 @@ export const useHabitsStore = create<HabitsState>((set, get) => ({
 
   deleteHabit: (id) => {
     HabitsDB.delete(id)
+    get().load()
+  },
+
+  useFreeze: (id) => {
+    HabitsDB.applyFreeze(id, todayISO())
     get().load()
   },
 }))

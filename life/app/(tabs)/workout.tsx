@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,18 +17,30 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import * as Haptics from 'expo-haptics'
+import { useFocusEffect } from 'expo-router'
 import { SectionLabel } from '@/components/ui'
+import { ExercisesDB, WorkoutsDB, generateId, todayISO } from '@/database'
+import { useWorkoutStore } from '@/store/workoutStore'
+import * as Notifications from 'expo-notifications'
 
-// ─── Types & données fictives ─────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type WorkoutType = 'classic' | 'emom'
 
-interface Exercise    { id: string; name: string; sets: number; reps: number; weight: number | null; emoji: string }
+interface PlannedExercise {
+  id: string; name: string; sets: number; reps: number
+  weight: number | null; emoji: string
+}
 interface EmomEx      { name: string; reps: number; emoji: string }
 interface HistoryItem { id: string; name: string; type: WorkoutType; duration: number; date: string }
 interface SheetEx     { name: string; sets: number; reps: number; weight: string }
+interface SetState    { weight: string; reps: string; rpe: number | null; done: boolean }
 
-const mockExercises: Exercise[] = [
+// ─── Static data ──────────────────────────────────────────────────────────────
+
+const RPE_VALUES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+
+const mockExercises: PlannedExercise[] = [
   { id: '1', name: 'Pompes',    sets: 3, reps: 15, weight: null, emoji: '💪' },
   { id: '2', name: 'Squat',     sets: 4, reps: 12, weight: 20,   emoji: '🏋️' },
   { id: '3', name: 'Tractions', sets: 3, reps: 8,  weight: null, emoji: '🔝' },
@@ -42,9 +55,9 @@ const mockEmomExercises: EmomEx[] = [
 ]
 
 const INITIAL_HISTORY: HistoryItem[] = [
-  { id: '1', name: 'Push / Pull',       type: 'classic', duration: 45, date: '2026-05-05' },
-  { id: '2', name: 'Full body EMOM',    type: 'emom',    duration: 20, date: '2026-05-03' },
-  { id: '3', name: 'Legs day',          type: 'classic', duration: 50, date: '2026-05-01' },
+  { id: '1', name: 'Push / Pull',    type: 'classic', duration: 45, date: '2026-05-05' },
+  { id: '2', name: 'Full body EMOM', type: 'emom',    duration: 20, date: '2026-05-03' },
+  { id: '3', name: 'Legs day',       type: 'classic', duration: 50, date: '2026-05-01' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -52,9 +65,200 @@ const INITIAL_HISTORY: HistoryItem[] = [
 const pad2 = (n: number) => String(n).padStart(2, '0')
 const formatTimer = (sec: number) => `00:${pad2(sec)}`
 
-// ─── ExerciceItem ─────────────────────────────────────────────────────────────
+const getRestTime = (exerciseName: string): number => {
+  const compounds = ['squat', 'bench', 'deadlift', 'press', 'row', 'pull', 'dip', 'chin']
+  return compounds.some(c => exerciseName.toLowerCase().includes(c)) ? 180 : 90
+}
 
-function ExerciceItem({ ex, isLast }: { ex: Exercise; isLast: boolean }) {
+// ─── RPEPicker ────────────────────────────────────────────────────────────────
+
+function RPEPicker({
+  value, onChange, disabled,
+}: { value: number | null; onChange: (v: number | null) => void; disabled?: boolean }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={st.rpePillRow}
+      contentContainerStyle={{ gap: 4 }}
+    >
+      {RPE_VALUES.map(v => (
+        <TouchableOpacity
+          key={v}
+          style={[st.rpePill, value === v && st.rpePillActive]}
+          onPress={() => !disabled && onChange(value === v ? null : v)}
+          disabled={disabled}
+          activeOpacity={0.75}
+        >
+          <Text style={[st.rpePillText, value === v && st.rpePillTextActive]}>
+            {v % 1 === 0 ? v : v.toFixed(1)}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  )
+}
+
+// ─── ActiveExerciseCard ───────────────────────────────────────────────────────
+
+function ActiveExerciseCard({
+  ex, workoutId, onSetConfirmed,
+}: { ex: PlannedExercise; workoutId: string; onSetConfirmed?: (name: string) => void }) {
+  const [sets,     setSets]     = useState<SetState[]>(
+    Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', rpe: null, done: false }))
+  )
+  const [lastPerf, setLastPerf] = useState<any>(null)
+  const [prBanner, setPrBanner] = useState<{ weightPR: boolean; repsPR: boolean; volumePR: boolean } | null>(null)
+  const [prWeight, setPrWeight] = useState(0)
+  const [prReps,   setPrReps]   = useState(0)
+  const prAnim   = useRef(new Animated.Value(0)).current
+  const prTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setLastPerf(ExercisesDB.getLastPerformance(ex.name))
+  }, [ex.name])
+
+  const updateSet = (idx: number, field: keyof SetState, value: any) => {
+    setSets(prev => { const n = [...prev]; n[idx] = { ...n[idx], [field]: value }; return n })
+  }
+
+  const handleConfirm = (idx: number) => {
+    const s = sets[idx]
+    const w = parseFloat(s.weight)
+    const r = parseInt(s.reps)
+    if (!w || !r) return
+
+    // Save to DB
+    ExercisesDB.insert({
+      id: generateId(), workoutId, name: ex.name,
+      sets: 1, reps: r, weight: w,
+      rpe: s.rpe ?? null, rir: null,
+      orderIndex: idx,
+    })
+
+    setSets(prev => { const n = [...prev]; n[idx] = { ...n[idx], done: true }; return n })
+    onSetConfirmed?.(ex.name)
+
+    // PR detection
+    const pr = ExercisesDB.isPR(ex.name, w, r)
+    if (pr.weightPR || pr.repsPR || pr.volumePR) {
+      setPrBanner(pr)
+      setPrWeight(w)
+      setPrReps(r)
+      if (pr.weightPR || pr.repsPR) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      }
+      if (prTimer.current) clearTimeout(prTimer.current)
+      prAnim.setValue(0)
+      Animated.sequence([
+        Animated.timing(prAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.delay(2500),
+        Animated.timing(prAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+      ]).start(() => setPrBanner(null))
+    }
+  }
+
+  return (
+    <View style={st.activeExCard}>
+      {/* Header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <View style={st.exIcon}>
+          <Text style={{ fontSize: 18 }}>{ex.emoji}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={st.exName}>{ex.name}</Text>
+          <Text style={st.exDetail}>{ex.sets} séries × {ex.reps} reps cible</Text>
+        </View>
+      </View>
+
+      {/* Last performance */}
+      {lastPerf ? (
+        <View style={st.lastPerfCard}>
+          <Text style={{ fontSize: 16 }}>📋</Text>
+          <Text style={st.lastPerfText}>
+            Dernière fois : {lastPerf.weight}kg × {lastPerf.reps} reps
+            {lastPerf.rpe ? ` @ RPE ${lastPerf.rpe}` : ''}
+          </Text>
+        </View>
+      ) : (
+        <Text style={st.firstTimeText}>Première fois sur cet exercice 🆕</Text>
+      )}
+
+      {/* Sets */}
+      {sets.map((s, idx) => (
+        <View key={idx} style={[st.setBlock, s.done && st.setBlockDone]}>
+          <View style={st.setRow}>
+            <Text style={st.setLabel}>#{idx + 1}</Text>
+            <TextInput
+              style={st.weightInput}
+              value={s.weight}
+              onChangeText={v => updateSet(idx, 'weight', v)}
+              placeholder="kg"
+              placeholderTextColor="#A0A0B8"
+              keyboardType="decimal-pad"
+              selectionColor="#FF9500"
+              editable={!s.done}
+            />
+            <Text style={st.setSep}>×</Text>
+            <TextInput
+              style={st.repsInput}
+              value={s.reps}
+              onChangeText={v => updateSet(idx, 'reps', v)}
+              placeholder="reps"
+              placeholderTextColor="#A0A0B8"
+              keyboardType="number-pad"
+              selectionColor="#FF9500"
+              editable={!s.done}
+            />
+            <TouchableOpacity
+              style={[st.confirmSetBtn, s.done && st.confirmSetBtnDone]}
+              onPress={() => handleConfirm(idx)}
+              disabled={s.done}
+              activeOpacity={0.8}
+            >
+              <Text style={st.confirmSetBtnText}>✓</Text>
+            </TouchableOpacity>
+          </View>
+          {!s.done && (
+            <View>
+              <Text style={st.rpeLabel}>RPE</Text>
+              <RPEPicker value={s.rpe} onChange={v => updateSet(idx, 'rpe', v)} />
+            </View>
+          )}
+          {s.done && s.rpe != null && (
+            <View style={st.rpeDoneRow}>
+              <View style={st.rpePillActive}>
+                <Text style={st.rpePillTextActive}>RPE {s.rpe}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      ))}
+
+      {/* PR Banner */}
+      {prBanner && (
+        <Animated.View style={[st.prBanner, { opacity: prAnim }]}>
+          <Text style={{ fontSize: 28 }}>🏆</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={st.prTitle}>NOUVEAU PR !</Text>
+            <Text style={st.prSub}>
+              {prBanner.weightPR ? '🎯 Record de poids  ' : ''}
+              {prBanner.repsPR   ? '💪 Record de reps  ' : ''}
+              {prBanner.volumePR ? '📊 Record de volume' : ''}
+            </Text>
+            <Text style={st.prE1rm}>
+              e1RM estimé : {ExercisesDB.e1RM(prWeight, prReps)} kg
+            </Text>
+          </View>
+        </Animated.View>
+      )}
+    </View>
+  )
+}
+
+// ─── ExerciceItem (vue non-active) ────────────────────────────────────────────
+
+function ExerciceItem({ ex, isLast }: { ex: PlannedExercise; isLast: boolean }) {
   return (
     <>
       <View style={st.exRow}>
@@ -80,8 +284,8 @@ function ExerciceItem({ ex, isLast }: { ex: Exercise; isLast: boolean }) {
 
 function HistoryCard({ item }: { item: HistoryItem }) {
   const d = format(new Date(item.date + 'T00:00:00'), 'd MMM', { locale: fr })
-  const typeBg   = item.type === 'emom' ? '#FF5C5C1F' : '#FF95001F'
-  const typeText = item.type === 'emom' ? '#CC2222'   : '#B36800'
+  const typeBg    = item.type === 'emom' ? '#FF5C5C1F' : '#FF95001F'
+  const typeText  = item.type === 'emom' ? '#CC2222'   : '#B36800'
   const typeLabel = item.type === 'emom' ? 'EMOM' : 'Classique'
 
   return (
@@ -105,24 +309,79 @@ function HistoryCard({ item }: { item: HistoryItem }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function WorkoutScreen() {
-  const [tab,         setTab]         = useState<WorkoutType>('classic')
-  const [showSheet,   setShowSheet]   = useState(false)
-  const [history,     setHistory]     = useState<HistoryItem[]>(INITIAL_HISTORY)
+  const [tab,       setTab]       = useState<WorkoutType>('classic')
+  const [showSheet, setShowSheet] = useState(false)
+  const [history,   setHistory]   = useState<HistoryItem[]>(INITIAL_HISTORY)
+
+  // Active workout
+  const [isActive,        setIsActive]       = useState(false)
+  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null)
+
+  const { load: loadWorkouts, clearExercisesCache } = useWorkoutStore()
+
+  useFocusEffect(useCallback(() => {
+    loadWorkouts()
+    return () => clearExercisesCache()
+  }, []))
 
   const deleteWorkout = (id: string) => setHistory(prev => prev.filter(h => h.id !== id))
 
+  const handleStart = () => {
+    const id = generateId()
+    WorkoutsDB.insert({
+      id, name: 'Push / Pull Day', type: 'classic',
+      duration: 0, date: todayISO(), notes: null,
+      createdAt: new Date().toISOString(),
+    })
+    setActiveWorkoutId(id)
+    setIsActive(true)
+  }
+
+  const handleFinish = () => {
+    setIsActive(false)
+    setActiveWorkoutId(null)
+  }
+
+  // ── Rest timer state ────────────────────────────────────────────────────────
+  const [restTimer, setRestTimer] = useState({ active: false, total: 90, remaining: 90 })
+
+  useEffect(() => {
+    if (!restTimer.active) return
+    const interval = setInterval(() => {
+      setRestTimer(s => {
+        if (s.remaining <= 1) return { ...s, active: false, remaining: 0 }
+        return { ...s, remaining: s.remaining - 1 }
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [restTimer.active])
+
+  useEffect(() => {
+    if (!restTimer.active && restTimer.remaining === 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+      Notifications.cancelScheduledNotificationAsync('rest-timer').catch(() => {})
+    }
+  }, [restTimer.active])
+
+  const startRestTimer = (exerciseName: string) => {
+    const restTime = getRestTime(exerciseName)
+    setRestTimer({ active: true, total: restTime, remaining: restTime })
+    Notifications.cancelScheduledNotificationAsync('rest-timer').catch(() => {})
+    Notifications.scheduleNotificationAsync({
+      identifier: 'rest-timer',
+      content: { title: '💪 Repos terminé !', body: "C'est reparti — prochain set !", sound: true },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: restTime },
+    }).catch(() => {})
+  }
+
   // ── EMOM timer state ────────────────────────────────────────────────────────
   const [timer, setTimer] = useState({
-    isRunning:            false,
-    currentSecond:        42,
-    currentMinute:        3,
-    totalMinutes:         12,
-    currentExerciseIndex: 0,
+    isRunning: false, currentSecond: 42, currentMinute: 3,
+    totalMinutes: 12, currentExerciseIndex: 0,
   })
 
   const prevMinute = useRef(timer.currentMinute)
 
-  // Haptics à chaque changement de minute
   useEffect(() => {
     if (timer.currentMinute !== prevMinute.current && timer.isRunning) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
@@ -130,7 +389,6 @@ export default function WorkoutScreen() {
     prevMinute.current = timer.currentMinute
   }, [timer.currentMinute])
 
-  // Intervalle du timer
   useEffect(() => {
     if (!timer.isRunning) return
     const id = setInterval(() => {
@@ -157,15 +415,15 @@ export default function WorkoutScreen() {
   const timerPct      = timer.currentMinute / timer.totalMinutes
 
   // ── Bottom sheet state ──────────────────────────────────────────────────────
-  const [sName,       setSName]       = useState('')
-  const [sType,       setSType]       = useState<WorkoutType>('classic')
-  const [sDuration,   setSDuration]   = useState('12')
-  const [sExercises,  setSExercises]  = useState<SheetEx[]>([])
-  const [showAddEx,   setShowAddEx]   = useState(false)
-  const [exName,      setExName]      = useState('')
-  const [exSets,      setExSets]      = useState(3)
-  const [exReps,      setExReps]      = useState(10)
-  const [exWeight,    setExWeight]    = useState('')
+  const [sName,      setSName]      = useState('')
+  const [sType,      setSType]      = useState<WorkoutType>('classic')
+  const [sDuration,  setSDuration]  = useState('12')
+  const [sExercises, setSExercises] = useState<SheetEx[]>([])
+  const [showAddEx,  setShowAddEx]  = useState(false)
+  const [exName,     setExName]     = useState('')
+  const [exSets,     setExSets]     = useState(3)
+  const [exReps,     setExReps]     = useState(10)
+  const [exWeight,   setExWeight]   = useState('')
 
   const handleAddExercise = () => {
     if (!exName.trim()) return
@@ -218,21 +476,35 @@ export default function WorkoutScreen() {
           {tab === 'classic' && (
             <>
               {/* Card séance active */}
-              <View style={st.activeCard}>
+              <View style={[st.activeCard, isActive && st.activeCardRunning]}>
                 <Text style={st.activeTitle}>Push / Pull Day</Text>
-                <Text style={st.activeSub}>5 exercices · 45 min</Text>
-                <TouchableOpacity style={st.startBtn} activeOpacity={0.85}>
-                  <Text style={st.startBtnText}>Commencer</Text>
-                </TouchableOpacity>
+                <Text style={st.activeSub}>
+                  {isActive ? `${mockExercises.length} exercices en cours…` : '4 exercices · 45 min'}
+                </Text>
+                {isActive ? (
+                  <TouchableOpacity style={st.finishBtn} onPress={handleFinish} activeOpacity={0.85}>
+                    <Text style={st.finishBtnText}>Terminer</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={st.startBtn} onPress={handleStart} activeOpacity={0.85}>
+                    <Text style={st.startBtnText}>Commencer</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
-              {/* Liste exercices */}
+              {/* Exercices — vue active ou vue normale */}
               <SectionLabel>Exercices</SectionLabel>
-              <View style={st.exCard}>
-                {mockExercises.map((ex, i) => (
-                  <ExerciceItem key={ex.id} ex={ex} isLast={i === mockExercises.length - 1} />
-                ))}
-              </View>
+              {isActive && activeWorkoutId ? (
+                mockExercises.map(ex => (
+                  <ActiveExerciseCard key={ex.id} ex={ex} workoutId={activeWorkoutId} onSetConfirmed={startRestTimer} />
+                ))
+              ) : (
+                <View style={st.exCard}>
+                  {mockExercises.map((ex, i) => (
+                    <ExerciceItem key={ex.id} ex={ex} isLast={i === mockExercises.length - 1} />
+                  ))}
+                </View>
+              )}
             </>
           )}
 
@@ -241,15 +513,12 @@ export default function WorkoutScreen() {
           ════════════════════════════════════════════════════════════════ */}
           {tab === 'emom' && (
             <>
-              {/* Timer card */}
               <View style={st.timerCard}>
                 <Text style={st.timerLabel}>EMOM EN COURS</Text>
                 <Text style={st.timerClock}>{formatTimer(timer.currentSecond)}</Text>
                 <Text style={st.timerExercise}>
                   {currentEmomEx.emoji} {currentEmomEx.name} × {currentEmomEx.reps}
                 </Text>
-
-                {/* Ligne info + bouton */}
                 <View style={st.timerInfoRow}>
                   <Text style={st.timerMinute}>
                     Minute {timer.currentMinute} / {timer.totalMinutes}
@@ -260,14 +529,11 @@ export default function WorkoutScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-
-                {/* Barre de progression */}
                 <View style={st.timerTrack}>
                   <View style={[st.timerFill, { width: `${Math.round(timerPct * 100)}%` }]} />
                 </View>
               </View>
 
-              {/* Prochain exercice */}
               <SectionLabel>Prochain</SectionLabel>
               <View style={st.exCard}>
                 <View style={st.exRow}>
@@ -286,33 +552,64 @@ export default function WorkoutScreen() {
             </>
           )}
 
-          {/* ── Historique (commun aux 2 vues) ─────────────────────────── */}
+          {/* ── Historique ────────────────────────────────────────────────── */}
           <SectionLabel>Historique</SectionLabel>
           {history.map(item => (
             <SwipeableRow
               key={item.id}
-              rightActions={[
-                {
-                  label: 'Supprimer',
-                  emoji: '🗑️',
-                  color: '#FF5C5C',
-                  onPress: () => {
-                    Alert.alert(
-                      'Supprimer la séance',
-                      'Cette action est irréversible.',
-                      [
-                        { text: 'Annuler', style: 'cancel' },
-                        { text: 'Supprimer', style: 'destructive', onPress: () => deleteWorkout(item.id) },
-                      ]
-                    )
-                  },
-                },
-              ]}
+              rightActions={[{
+                label: 'Supprimer', emoji: '🗑️', color: '#FF5C5C',
+                onPress: () => Alert.alert(
+                  'Supprimer la séance', 'Cette action est irréversible.',
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    { text: 'Supprimer', style: 'destructive', onPress: () => deleteWorkout(item.id) },
+                  ]
+                ),
+              }]}
             >
               <HistoryCard item={item} />
             </SwipeableRow>
           ))}
         </ScrollView>
+
+        {/* ════════════════════════════════════════════════════════════════
+            REST TIMER BANNER
+        ════════════════════════════════════════════════════════════════ */}
+        {restTimer.active && (
+          <View style={st.restBanner}>
+            <View>
+              <Text style={st.restLabel}>REPOS</Text>
+              <Text style={st.restClock}>
+                {Math.floor(restTimer.remaining / 60)}:{String(restTimer.remaining % 60).padStart(2, '0')}
+              </Text>
+            </View>
+            <View style={{ flex: 1, marginHorizontal: 16 }}>
+              <View style={st.restTrack}>
+                <View style={[st.restFill, { width: `${(restTimer.remaining / restTimer.total) * 100}%` as any }]} />
+              </View>
+            </View>
+            <View style={{ gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => setRestTimer(s => ({ ...s, remaining: s.remaining + 30 }))}
+                style={st.restActionBtn}
+                activeOpacity={0.75}
+              >
+                <Text style={st.restActionText}>+30s</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setRestTimer(s => ({ ...s, active: false }))
+                  Notifications.cancelScheduledNotificationAsync('rest-timer').catch(() => {})
+                }}
+                style={st.restActionBtn}
+                activeOpacity={0.75}
+              >
+                <Text style={st.restActionText}>Skip</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* ════════════════════════════════════════════════════════════════
             BOTTOM SHEET NOUVELLE SÉANCE
@@ -324,7 +621,6 @@ export default function WorkoutScreen() {
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={st.sheetTitle}>Nouvelle séance</Text>
 
-                {/* Nom */}
                 <TextInput
                   style={st.sheetInput}
                   placeholder="Nom de la séance…"
@@ -335,7 +631,6 @@ export default function WorkoutScreen() {
                   selectionColor="#FF9500"
                 />
 
-                {/* Type */}
                 <Text style={st.sheetLabel}>Type</Text>
                 <View style={st.sheetTypePills}>
                   {(['classic', 'emom'] as WorkoutType[]).map(t => (
@@ -352,7 +647,6 @@ export default function WorkoutScreen() {
                   ))}
                 </View>
 
-                {/* EMOM — durée */}
                 {sType === 'emom' && (
                   <>
                     <Text style={st.sheetLabel}>Durée totale (minutes)</Text>
@@ -368,7 +662,6 @@ export default function WorkoutScreen() {
                   </>
                 )}
 
-                {/* Liste exercices ajoutés */}
                 {sExercises.length > 0 && (
                   <>
                     <Text style={st.sheetLabel}>Exercices</Text>
@@ -387,7 +680,6 @@ export default function WorkoutScreen() {
                   </>
                 )}
 
-                {/* Formulaire ajout exercice */}
                 {showAddEx ? (
                   <View style={st.sheetAddExForm}>
                     <TextInput
@@ -401,7 +693,6 @@ export default function WorkoutScreen() {
                     />
                     {sType === 'classic' && (
                       <View style={{ flexDirection: 'row', gap: 8 }}>
-                        {/* Sets counter */}
                         <View style={st.counterRow}>
                           <TouchableOpacity style={st.counterBtn} onPress={() => setExSets(v => Math.max(1, v - 1))}>
                             <Text style={st.counterBtnText}>−</Text>
@@ -411,7 +702,6 @@ export default function WorkoutScreen() {
                             <Text style={st.counterBtnText}>+</Text>
                           </TouchableOpacity>
                         </View>
-                        {/* Reps counter */}
                         <View style={st.counterRow}>
                           <TouchableOpacity style={st.counterBtn} onPress={() => setExReps(v => Math.max(1, v - 1))}>
                             <Text style={st.counterBtnText}>−</Text>
@@ -466,7 +756,6 @@ export default function WorkoutScreen() {
                   </TouchableOpacity>
                 )}
 
-                {/* Créer la séance */}
                 <TouchableOpacity
                   style={[st.sheetConfirm, { marginTop: 8, opacity: sName.trim() ? 1 : 0.45 }]}
                   onPress={handleCloseSheet}
@@ -517,6 +806,7 @@ const st = StyleSheet.create({
   activeCard: {
     backgroundColor: '#FF9500', borderRadius: 24, padding: 20, marginBottom: 16,
   },
+  activeCardRunning: { backgroundColor: '#00A87A' },
   activeTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   activeSub:   { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 14 },
   startBtn: {
@@ -524,8 +814,13 @@ const st = StyleSheet.create({
     alignItems: 'center', alignSelf: 'flex-start',
   },
   startBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  finishBtn: {
+    backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 12, padding: 10,
+    alignItems: 'center', alignSelf: 'flex-start',
+  },
+  finishBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
-  // Exercise card wrapper
+  // Exercise card (non-active)
   exCard: {
     backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 12,
     borderLeftWidth: 4, borderLeftColor: '#FF9500',
@@ -537,11 +832,81 @@ const st = StyleSheet.create({
     width: 38, height: 38, borderRadius: 19, backgroundColor: '#FF95001F',
     alignItems: 'center', justifyContent: 'center',
   },
-  exName:       { fontSize: 14, fontWeight: '700', color: '#0D0D1A' },
-  exDetail:     { fontSize: 12, color: '#6B6B85', marginTop: 2 },
-  weightBadge:  { backgroundColor: '#FF95001F', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
+  exName:          { fontSize: 14, fontWeight: '700', color: '#0D0D1A' },
+  exDetail:        { fontSize: 12, color: '#6B6B85', marginTop: 2 },
+  weightBadge:     { backgroundColor: '#FF95001F', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
   weightBadgeText: { fontSize: 10, fontWeight: '700', color: '#B36800' },
-  separator:    { height: 0.5, backgroundColor: '#F0F0F8', marginVertical: 6 },
+  separator:       { height: 0.5, backgroundColor: '#F0F0F8', marginVertical: 6 },
+
+  // Active exercise card
+  activeExCard: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 12,
+    borderLeftWidth: 4, borderLeftColor: '#00A87A',
+    shadowColor: '#00A87A', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 2,
+  },
+
+  // Last performance
+  lastPerfCard: {
+    backgroundColor: '#FF95001F', borderRadius: 12, padding: 10,
+    flexDirection: 'row', alignItems: 'center',
+    gap: 8, marginBottom: 10,
+  },
+  lastPerfText: { fontSize: 12, color: '#B36800', fontWeight: '600', flex: 1 },
+  firstTimeText: {
+    fontSize: 12, color: '#A0A0B8', fontStyle: 'italic',
+    marginBottom: 10, paddingLeft: 4,
+  },
+
+  // Set rows
+  setBlock: {
+    backgroundColor: '#F7F7FA', borderRadius: 12, padding: 10,
+    marginBottom: 6,
+  },
+  setBlockDone: { backgroundColor: '#00C8961A' },
+  setRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  setLabel: { fontSize: 11, fontWeight: '700', color: '#A0A0B8', width: 24 },
+  weightInput: {
+    backgroundColor: '#fff', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10,
+    fontSize: 14, fontWeight: '600', color: '#0D0D1A', width: 70,
+    borderWidth: 1, borderColor: '#EEEEF5',
+    textAlign: 'center',
+  },
+  repsInput: {
+    backgroundColor: '#fff', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10,
+    fontSize: 14, fontWeight: '600', color: '#0D0D1A', width: 60,
+    borderWidth: 1, borderColor: '#EEEEF5',
+    textAlign: 'center',
+  },
+  setSep: { fontSize: 16, fontWeight: '700', color: '#A0A0B8' },
+  confirmSetBtn: {
+    marginLeft: 'auto', backgroundColor: '#FF9500', borderRadius: 10,
+    width: 38, height: 38, alignItems: 'center', justifyContent: 'center',
+  },
+  confirmSetBtnDone: { backgroundColor: '#00A87A' },
+  confirmSetBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
+
+  // RPE
+  rpeLabel: { fontSize: 10, fontWeight: '700', color: '#A0A0B8', letterSpacing: 0.5, marginTop: 8, marginBottom: 4, marginLeft: 2 },
+  rpePillRow: { flexGrow: 0, marginBottom: 2 },
+  rpePill: {
+    borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
+    backgroundColor: '#EEEEF5', marginRight: 4,
+  },
+  rpePillActive:     { backgroundColor: '#FF9500' },
+  rpePillText:       { fontSize: 11, fontWeight: '600', color: '#6B6B85' },
+  rpePillTextActive: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  rpeDoneRow: { flexDirection: 'row', marginTop: 6 },
+
+  // PR Banner
+  prBanner: {
+    backgroundColor: '#FFD700', borderRadius: 16, padding: 14,
+    flexDirection: 'row', alignItems: 'center',
+    gap: 10, marginTop: 8,
+  },
+  prTitle: { fontSize: 16, fontWeight: '900', color: '#0D0D1A' },
+  prSub:   { fontSize: 12, color: '#6B6B85', marginTop: 2 },
+  prE1rm:  { fontSize: 11, color: '#6B6B85', marginTop: 2 },
 
   // History
   histCard: {
@@ -556,21 +921,19 @@ const st = StyleSheet.create({
   histBadgeText: { fontSize: 10, fontWeight: '700' },
 
   // EMOM timer card
-  timerCard: {
-    backgroundColor: '#FF9500', borderRadius: 24, padding: 24, marginBottom: 12,
-  },
-  timerLabel:   { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.8, marginBottom: 8 },
-  timerClock:   { fontSize: 56, fontWeight: '900', color: '#fff', lineHeight: 60, marginBottom: 6 },
-  timerExercise:{ fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 14 },
-  timerInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  timerMinute:  { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+  timerCard: { backgroundColor: '#FF9500', borderRadius: 24, padding: 24, marginBottom: 12 },
+  timerLabel:    { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.8, marginBottom: 8 },
+  timerClock:    { fontSize: 56, fontWeight: '900', color: '#fff', lineHeight: 60, marginBottom: 6 },
+  timerExercise: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 14 },
+  timerInfoRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  timerMinute:   { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
   timerToggleBtn: {
     backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 99,
     paddingVertical: 6, paddingHorizontal: 16,
   },
   timerToggleText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  timerTrack:   { backgroundColor: 'rgba(255,255,255,0.25)', height: 8, borderRadius: 99, overflow: 'hidden' },
-  timerFill:    { backgroundColor: '#fff', height: 8, borderRadius: 99 },
+  timerTrack: { backgroundColor: 'rgba(255,255,255,0.25)', height: 8, borderRadius: 99, overflow: 'hidden' },
+  timerFill:  { backgroundColor: '#fff', height: 8, borderRadius: 99 },
 
   // Overlay + sheet
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,26,0.35)' },
@@ -591,11 +954,11 @@ const st = StyleSheet.create({
     fontSize: 12, fontWeight: '700', color: '#A0A0B8',
     letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
   },
-  sheetTypePills:    { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  sheetTypePill:     { flex: 1, borderRadius: 99, paddingVertical: 10, backgroundColor: '#EEEEF5', alignItems: 'center' },
+  sheetTypePills:      { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  sheetTypePill:       { flex: 1, borderRadius: 99, paddingVertical: 10, backgroundColor: '#EEEEF5', alignItems: 'center' },
   sheetTypePillActive: { backgroundColor: '#FF9500' },
-  sheetTypePillText: { fontSize: 14, fontWeight: '500', color: '#6B6B85' },
-  sheetExItem:  {
+  sheetTypePillText:   { fontSize: 14, fontWeight: '500', color: '#6B6B85' },
+  sheetExItem: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
     borderBottomWidth: 0.5, borderBottomColor: '#F0F0F8',
   },
@@ -616,4 +979,22 @@ const st = StyleSheet.create({
   counterBtn:     { width: 26, height: 26, borderRadius: 13, backgroundColor: '#EEEEF5', alignItems: 'center', justifyContent: 'center' },
   counterBtnText: { fontSize: 16, color: '#0D0D1A', fontWeight: '600', lineHeight: 18 },
   counterVal:     { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: '#0D0D1A' },
+
+  // Rest timer banner
+  restBanner: {
+    position: 'absolute', bottom: 80, left: 16, right: 16,
+    backgroundColor: '#FF9500', borderRadius: 20,
+    padding: 16, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#FF9500', shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
+  },
+  restLabel:     { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '700', textTransform: 'uppercase' },
+  restClock:     { fontSize: 36, fontWeight: '900', color: '#fff' },
+  restTrack:     { backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 99, height: 8 },
+  restFill:      { height: 8, borderRadius: 99, backgroundColor: '#fff' },
+  restActionBtn: {
+    backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 99,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  restActionText: { color: '#fff', fontWeight: '700', fontSize: 12 },
 })
