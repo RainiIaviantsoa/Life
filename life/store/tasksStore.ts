@@ -46,15 +46,11 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       generateRecurringTasks()
     }
 
-    // Schedule notification if time is set
     if (task.time) {
-      const { scheduleTaskNotification } = await import('@/utils/notifications')
-      await scheduleTaskNotification({
-        id:    task.id,
-        title: task.title,
-        date:  task.date,
-        time:  task.time,
-      })
+      try {
+        const { scheduleTaskNotification } = await import('@/utils/notifications')
+        await scheduleTaskNotification({ id: task.id, title: task.title, date: task.date, time: task.time })
+      } catch {}
     }
 
     get().load()
@@ -64,13 +60,15 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     const task = get().tasks.find(t => t.id === id)
     if (!task) return
 
-    if (!task.completed) {
-      const { cancelTaskNotification } = await import('@/utils/notifications')
-      await cancelTaskNotification(id)
-    }
-
     TasksDB.update(id, { completed: task.completed ? 0 : 1 })
     get().load()
+
+    if (!task.completed) {
+      try {
+        const { cancelTaskNotification } = await import('@/utils/notifications')
+        await cancelTaskNotification(id)
+      } catch {}
+    }
   },
 
   updateTask: (id, fields) => {

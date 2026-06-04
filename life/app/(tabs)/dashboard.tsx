@@ -9,50 +9,46 @@ import { useWorkoutStore } from "@/store/workoutStore";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Keyboard, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const ds = StyleSheet.create({
   highlightCard: {
-    backgroundColor: '#0077B6', borderRadius: 24, padding: 20, marginBottom: 16,
-    shadowColor: '#0077B6', shadowOpacity: 0.35, shadowRadius: 16, elevation: 8,
+    backgroundColor: '#0077B6', borderRadius: 20, padding: 20, marginBottom: 16,
   },
-  highlightLabel:       { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.9)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 },
-  highlightText:        { fontSize: 20, fontWeight: '800', color: '#fff', lineHeight: 26 },
-  highlightDone:        { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 8 },
+  highlightLabel:       { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.9)', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 },
+  highlightText:        { fontSize: 21, fontWeight: '800', color: '#fff', lineHeight: 28 },
+  highlightDone:        { fontSize: 15, color: 'rgba(255,255,255,0.9)', marginTop: 8 },
   highlightPlaceholder: { fontSize: 16, color: 'rgba(255,255,255,0.82)', fontStyle: 'italic', marginTop: 4 },
   highlightCompleteBtn: {
     backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 99,
-    paddingHorizontal: 14, paddingVertical: 6, alignSelf: 'flex-start', marginTop: 10,
+    paddingHorizontal: 14, paddingVertical: 7, alignSelf: 'flex-start', marginTop: 10,
   },
-  highlightCompleteBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  highlightCompleteBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
   mitsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  mitsTitle:  { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' },
-  mitsCount:  { fontSize: 11, color: Colors.violet, fontWeight: '600' },
-  mitsEmpty:  { fontSize: 13, color: Colors.textMuted, fontStyle: 'italic' },
+  mitsTitle:  { fontSize: 13, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.4, textTransform: 'uppercase' },
+  mitsCount:  { fontSize: 13, color: Colors.violet, fontWeight: '600' },
+  mitsEmpty:  { fontSize: 15, color: Colors.textMuted, fontStyle: 'italic' },
   mitRow: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 12,
+    backgroundColor: '#fff', borderRadius: 16, padding: 13,
     flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6,
-    borderLeftWidth: 4,
-    shadowColor: Colors.violet, shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
-  mitTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: Colors.text },
+  mitTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: Colors.text },
 
   modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 100 },
   modalSheet:   { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
-  modalTitle:   { fontSize: 18, fontWeight: '800', color: Colors.text, marginBottom: 8 },
-  modalSub:     { fontSize: 13, color: Colors.textSub, marginBottom: 14 },
+  modalTitle:   { fontSize: 19, fontWeight: '800', color: Colors.text, marginBottom: 8 },
+  modalSub:     { fontSize: 15, color: Colors.textSub, marginBottom: 14 },
   modalInput:   { backgroundColor: Colors.bg1, borderRadius: 14, padding: 14, fontSize: 15, color: Colors.text, minHeight: 60 },
   modalBtn:     { backgroundColor: Colors.violet, borderRadius: 14, padding: 15, alignItems: 'center', marginTop: 14 },
   modalBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 })
 
-// MIT border colors ranked by priority
-const MIT_BORDER = [Colors.coral, Colors.amber, Colors.violet]
-const MIT_MEDAL  = ['🥇', '🥈', '🥉']
+const MIT_NUM_COLOR = [Colors.coral, Colors.amber, Colors.violet]
 
 // Budget bar color changes with usage — muted tones to avoid harsh contrast
 function budgetColor(pct: number) {
@@ -70,8 +66,21 @@ export default function DashboardScreen() {
   const [savedHighlight,   setSavedHighlight]   = useState<any>(() => HighlightsDB.getByDate(todayISO()))
   const [highlight,        setHighlight]        = useState('')
   const [editingHighlight, setEditingHighlight] = useState(false)
+  const [kbHeight,         setKbHeight]         = useState(0)
 
   const refreshHighlight = () => setSavedHighlight(HighlightsDB.getByDate(todayISO()))
+
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      e => setKbHeight(e.endCoordinates.height)
+    )
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKbHeight(0)
+    )
+    return () => { show.remove(); hide.remove() }
+  }, [])
 
   useFocusEffect(
     useCallback(() => {
@@ -100,7 +109,7 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginTop: 16 }}>
           <View>
-            <Text style={{ fontSize: 13, color: Colors.textSub }}>Bonjour 👋</Text>
+            <Text style={{ fontSize: 22, color: Colors.violet, fontWeight: '700' }}>Bonjour 👋</Text>
             <Text style={{ fontSize: 26, fontWeight: "900", color: Colors.text, marginBottom: 20, textTransform: "capitalize" }}>
               {dayLabel}
             </Text>
@@ -158,8 +167,8 @@ export default function DashboardScreen() {
             <Text style={ds.mitsEmpty}>Aucune MIT définie — va dans Tasks et épingle tes 3 priorités</Text>
           ) : (
             mits.slice(0, 3).map((task, i) => (
-              <View key={task.id} style={[ds.mitRow, { borderLeftColor: MIT_BORDER[i] }]}>
-                <Text style={{ fontSize: 16 }}>{MIT_MEDAL[i]}</Text>
+              <View key={task.id} style={ds.mitRow}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: MIT_NUM_COLOR[i], width: 20 }}>{i + 1}</Text>
                 <Text style={ds.mitTitle}>{task.title}</Text>
               </View>
             ))
@@ -178,7 +187,7 @@ export default function DashboardScreen() {
         <SectionLabel>Tâches du jour</SectionLabel>
         <Card accent="coral">
           {todayTasks.length === 0 ? (
-            <Text style={{ color: Colors.textMuted, fontSize: 14, paddingVertical: 8 }}>Aucune tâche aujourd'hui</Text>
+            <Text style={{ color: Colors.textMuted, fontSize: 15, paddingVertical: 8 }}>Aucune tâche aujourd'hui</Text>
           ) : (
             todayTasks.slice(0, 5).map((task, i, arr) => (
               <View
@@ -199,7 +208,7 @@ export default function DashboardScreen() {
                   {Boolean(task.completed) && <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>✓</Text>}
                 </View>
                 <Text style={{
-                  flex: 1, fontSize: 14,
+                  flex: 1, fontSize: 15,
                   color: task.completed ? Colors.textMuted : Colors.text,
                   textDecorationLine: task.completed ? "line-through" : "none",
                 }}>
@@ -215,7 +224,7 @@ export default function DashboardScreen() {
         <SectionLabel>Budget mensuel</SectionLabel>
         <Card accent="blue">
           {budget.limit === 0 ? (
-            <Text style={{ color: Colors.textMuted, fontSize: 14, paddingVertical: 8 }}>
+            <Text style={{ color: Colors.textMuted, fontSize: 15, paddingVertical: 8 }}>
               Budget non défini — appui long sur la carte Finance
             </Text>
           ) : (
@@ -225,21 +234,21 @@ export default function DashboardScreen() {
                   <Text style={{ fontSize: 22, fontWeight: "900", color: fillColor }}>
                     Ar{Math.round(budget.spent)}
                   </Text>
-                  <Text style={{ fontSize: 11, color: Colors.textMuted, marginTop: 1 }}>dépensé ce mois</Text>
+                  <Text style={{ fontSize: 14, color: Colors.textMuted, marginTop: 1 }}>dépensé ce mois</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ fontSize: 22, fontWeight: "900", color: Colors.text }}>
                     Ar{Math.round(budget.limit)}
                   </Text>
-                  <Text style={{ fontSize: 11, color: Colors.textMuted, marginTop: 1 }}>plafond</Text>
+                  <Text style={{ fontSize: 14, color: Colors.textMuted, marginTop: 1 }}>plafond</Text>
                 </View>
               </View>
               <View style={{ backgroundColor: Colors.bg2, height: 10, borderRadius: 99, overflow: "hidden" }}>
                 <View style={{ backgroundColor: fillColor, width: `${Math.round(budgetPct * 100)}%`, height: 10, borderRadius: 99 }} />
               </View>
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
-                <Text style={{ fontSize: 11, color: Colors.textMuted }}>{Math.round(budgetPct * 100)} % utilisé</Text>
-                <Text style={{ fontSize: 11, color: Colors.green, fontWeight: "700" }}>
+                <Text style={{ fontSize: 14, color: Colors.textMuted }}>{Math.round(budgetPct * 100)} % utilisé</Text>
+                <Text style={{ fontSize: 14, color: Colors.green, fontWeight: "700" }}>
                   Ar{Math.max(0, Math.round(budget.limit - budget.spent))} restant
                 </Text>
               </View>
@@ -251,7 +260,7 @@ export default function DashboardScreen() {
         <SectionLabel>Habitudes</SectionLabel>
         <Card accent="green">
           {habits.length === 0 ? (
-            <Text style={{ color: Colors.textMuted, fontSize: 14, paddingVertical: 8 }}>Aucune habitude créée</Text>
+            <Text style={{ color: Colors.textMuted, fontSize: 15, paddingVertical: 8 }}>Aucune habitude créée</Text>
           ) : (
             habits.map((habit, i, arr) => (
               <View
@@ -264,8 +273,8 @@ export default function DashboardScreen() {
                 }}
               >
                 <Text style={{ fontSize: 22, marginRight: 10 }}>{habit.emoji}</Text>
-                <Text style={{ flex: 1, fontSize: 14, color: Colors.text }}>{habit.name}</Text>
-                <Text style={{ fontSize: 13, fontWeight: "800", color: Colors.green }}>
+                <Text style={{ flex: 1, fontSize: 15, color: Colors.text }}>{habit.name}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "800", color: Colors.green }}>
                   {habit.streak > 0 ? `🔥 ${habit.streak}` : "—"}
                 </Text>
               </View>
@@ -279,7 +288,8 @@ export default function DashboardScreen() {
       {editingHighlight && (
         <View style={ds.modalOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setEditingHighlight(false)} />
-          <View style={ds.modalSheet}>
+          {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: kbHeight - 40, backgroundColor: '#fff' }} />}
+          <View style={[ds.modalSheet, { marginBottom: kbHeight > 0 ? kbHeight - 40 : 0, paddingBottom: kbHeight > 0 ? 26 : 40 }]}>
             <Text style={ds.modalTitle}>⭐ Highlight du jour</Text>
             <Text style={ds.modalSub}>Si tu ne pouvais accomplir qu'UNE chose aujourd'hui, ce serait quoi ?</Text>
             <TextInput
@@ -288,7 +298,7 @@ export default function DashboardScreen() {
               placeholder="Ex: Finir la présentation client"
               placeholderTextColor={Colors.textMuted}
               style={ds.modalInput}
-              autoFocus
+
               multiline
               selectionColor={Colors.violet}
             />

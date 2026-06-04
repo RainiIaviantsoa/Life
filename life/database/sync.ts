@@ -365,6 +365,16 @@ export const FinancesDB = {
     } catch {}
   },
 
+  update: (id: string, fields: { amount?: number; type?: string; category?: string; label?: string }): void => {
+    try {
+      const entries = Object.entries(fields).filter(([, v]) => v !== undefined)
+      if (!entries.length) return
+      const setClauses = entries.map(([k]) => `${k} = ?`).join(', ')
+      const values     = [...entries.map(([, v]) => v), id]
+      db.runSync(`UPDATE finances SET ${setClauses} WHERE id = ?`, values as any)
+    } catch {}
+  },
+
   delete: (id: string): void => {
     try { db.runSync('DELETE FROM finances WHERE id = ?', [id]) } catch {}
   },

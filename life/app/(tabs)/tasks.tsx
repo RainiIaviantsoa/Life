@@ -1,9 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react-native'
 import {
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -14,7 +13,7 @@ import {
   View,
 } from 'react-native'
 import { SwipeableRow } from '@/components/ui/SwipeableRow'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Calendar } from 'react-native-calendars'
 import { format, addDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -28,7 +27,7 @@ import type { Priority, Recurrence, Task } from '@/types'
 const PRIORITY_CFG = {
   high:   { border: '#FF7B54', bg: '#FF7B541F', text: '#D94520', label: 'Haute'   },
   medium: { border: '#FF9F1C', bg: '#FF9F1C1F', text: '#A07000', label: 'Moyenne' },
-  low:    { border: '#FF7B54', bg: '#FF7B541F', text: '#007A8A', label: 'Basse'   },
+  low:    { border: '#0ABDE3', bg: '#0ABDE31F', text: '#006D8A', label: 'Basse'   },
 } as const
 
 const RECURRENCE_LABELS: Record<Recurrence, string> = {
@@ -87,62 +86,47 @@ function sortTasks(list: Task[]): Task[] {
 // ─── TaskItem ─────────────────────────────────────────────────────────────────
 
 interface TaskItemProps {
-  task:          Task
-  onToggle:      () => void
-  onToggleMIT?:  () => void
+  task:         Task
+  onToggle:     () => void
+  onLongPress:  () => void
 }
 
-function TaskItem({ task, onToggle, onToggleMIT }: TaskItemProps) {
+function TaskItem({ task, onToggle, onLongPress }: TaskItemProps) {
   const p = PRIORITY_CFG[task.priority] ?? PRIORITY_CFG.medium
 
   return (
-    <TouchableOpacity onPress={onToggle} activeOpacity={0.85}>
-      <View style={[st.taskCard, { borderLeftColor: p.border }]}>
-        {/* Ligne principale */}
+    <TouchableOpacity onPress={onToggle} onLongPress={onLongPress} delayLongPress={350} activeOpacity={0.85}>
+      <View style={[st.taskCard, { borderLeftColor: p.border, shadowColor: p.border }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          {/* Check */}
           <View style={{
             width: 24, height: 24, borderRadius: 99,
-            backgroundColor: task.completed ? '#FF7B54' : 'transparent',
+            backgroundColor: task.completed ? p.border : 'transparent',
             borderWidth: task.completed ? 0 : 2, borderColor: '#C5D5DC',
             alignItems: 'center', justifyContent: 'center',
           }}>
             {task.completed && <Text style={{ color: '#fff', fontSize: 12 }}>✓</Text>}
           </View>
-
-          {/* Titre */}
           <Text style={{
-            flex: 1, fontSize: 14, fontWeight: '600',
+            flex: 1, fontSize: 15, fontWeight: '600',
             color: task.completed ? '#7A9AAB' : '#264653',
             textDecorationLine: task.completed ? 'line-through' : 'none',
           }}>
             {task.title}
           </Text>
-
-          {/* Badge priorité */}
-          <View style={{ backgroundColor: p.bg, borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: p.text }}>{p.label}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {!!task.isMIT && <Text style={{ fontSize: 13 }}>⭐</Text>}
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: p.border }} />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: p.text }}>{p.label}</Text>
           </View>
-
-          {/* Bouton MIT */}
-          {onToggleMIT && (
-            <TouchableOpacity onPress={(e) => { e.stopPropagation?.(); onToggleMIT() }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 18, opacity: task.isMIT ? 1 : 0.25 }}>⭐</Text>
-            </TouchableOpacity>
-          )}
         </View>
-
-        {/* Ligne secondaire : heure + récurrence */}
         {(task.time || task.recurrence !== 'none' || !!task.parentId) && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginLeft: 34 }}>
             {task.time && (
-              <Text style={{ fontSize: 11, color: '#FF7B54', fontWeight: '600' }}>🕐 {task.time}</Text>
+              <Text style={{ fontSize: 13, color: '#FF7B54', fontWeight: '600' }}>🕐 {task.time}</Text>
             )}
             {(task.recurrence !== 'none' || !!task.parentId) && (
-              <Text style={{ fontSize: 11, color: '#7A9AAB' }}>
-                {task.recurrence !== 'none'
-                  ? `🔁 ${RECURRENCE_LABELS[task.recurrence]}`
-                  : '🔁'}
+              <Text style={{ fontSize: 13, color: '#7A9AAB' }}>
+                {task.recurrence !== 'none' ? `🔁 ${RECURRENCE_LABELS[task.recurrence]}` : '🔁'}
               </Text>
             )}
           </View>
@@ -171,6 +155,7 @@ const INITIAL_FORM = {
 }
 
 export default function TasksScreen() {
+  const insets = useSafeAreaInsets()
   const { tasks, load, addTask, toggleTask, deleteTask, updateTask } = useTasksStore()
 
   const [tab,          setTab]          = useState<TabKey>('today')
@@ -178,6 +163,20 @@ export default function TasksScreen() {
   const [showSheet,    setShowSheet]    = useState(false)
   const [form,         setForm]         = useState(INITIAL_FORM)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [actionTask,   setActionTask]   = useState<Task | null>(null)
+  const [kbHeight,     setKbHeight]     = useState(0)
+
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      e => setKbHeight(e.endCoordinates.height)
+    )
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKbHeight(0)
+    )
+    return () => { show.remove(); hide.remove() }
+  }, [])
 
   useFocusEffect(useCallback(() => { load() }, []))
 
@@ -297,14 +296,6 @@ export default function TasksScreen() {
   const renderTask = (task: Task) => (
     <SwipeableRow
       key={task.id}
-      leftActions={[
-        {
-          label: 'Reporter',
-          emoji: '📅',
-          color: '#FF9F1C',
-          onPress: () => handlePostpone(task),
-        },
-      ]}
       rightActions={[
         {
           label: 'Supprimer',
@@ -314,7 +305,11 @@ export default function TasksScreen() {
         },
       ]}
     >
-      <TaskItem task={task} onToggle={() => toggleTask(task.id)} onToggleMIT={() => handleToggleMIT(task)} />
+      <TaskItem
+        task={task}
+        onToggle={() => toggleTask(task.id)}
+        onLongPress={() => setActionTask(task)}
+      />
     </SwipeableRow>
   )
 
@@ -324,7 +319,7 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView style={st.safe} edges={['top']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={st.scroll}
@@ -405,7 +400,8 @@ export default function TasksScreen() {
         {showSheet && (
           <>
             <Pressable style={st.overlay} onPress={handleCancel} />
-            <View style={st.sheet}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={st.sheetTitle}>Nouvelle tâche</Text>
 
@@ -416,7 +412,7 @@ export default function TasksScreen() {
                   placeholderTextColor="#7A9AAB"
                   value={form.title}
                   onChangeText={v => setForm(f => ({ ...f, title: v }))}
-                  autoFocus
+
                   returnKeyType="done"
                   selectionColor="#FF7B54"
                 />
@@ -530,7 +526,60 @@ export default function TasksScreen() {
             </View>
           </>
         )}
-      </KeyboardAvoidingView>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            ACTION SHEET APPUI LONG
+        ══════════════════════════════════════════════════════════════════ */}
+        {actionTask && (
+          <>
+            <Pressable style={st.overlay} onPress={() => setActionTask(null)} />
+            <View style={st.actionSheet}>
+              <Text style={st.actionTitle} numberOfLines={1}>{actionTask.title}</Text>
+
+              <TouchableOpacity
+                style={st.actionRow}
+                onPress={() => { handleToggleMIT(actionTask); setActionTask(null) }}
+                activeOpacity={0.75}
+              >
+                <Text style={st.actionIcon}>⭐</Text>
+                <Text style={st.actionLabel}>
+                  {actionTask.isMIT ? 'Retirer des priorités' : 'Marquer comme priorité'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={st.actionDivider} />
+
+              <TouchableOpacity
+                style={st.actionRow}
+                onPress={() => { handlePostpone(actionTask); setActionTask(null) }}
+                activeOpacity={0.75}
+              >
+                <Text style={st.actionIcon}>📅</Text>
+                <Text style={st.actionLabel}>Reporter à demain</Text>
+              </TouchableOpacity>
+
+              <View style={st.actionDivider} />
+
+              <TouchableOpacity
+                style={st.actionRow}
+                onPress={() => { setActionTask(null); handleDeleteTask(actionTask) }}
+                activeOpacity={0.75}
+              >
+                <Text style={st.actionIcon}>🗑️</Text>
+                <Text style={[st.actionLabel, { color: '#FF7B54' }]}>Supprimer</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={st.actionCancel}
+                onPress={() => setActionTask(null)}
+                activeOpacity={0.75}
+              >
+                <Text style={st.actionCancelText}>Annuler</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   )
 }
@@ -552,20 +601,20 @@ const st = StyleSheet.create({
   tabs:         { flexDirection: 'row', gap: 8, marginBottom: 16 },
   tabPill:      { borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#E0EDF2' },
   tabPillActive:{ backgroundColor: '#FF7B54' },
-  tabText:      { fontSize: 13, fontWeight: '500', color: '#4A7080' },
+  tabText:      { fontSize: 14, fontWeight: '500', color: '#4A7080' },
   tabTextActive:{ color: '#fff', fontWeight: '700' },
 
-  empty:      { textAlign: 'center', color: '#7A9AAB', fontSize: 14, marginTop: 40 },
-  groupHeader:{ fontSize: 12, fontWeight: '700', color: '#4A7080', textTransform: 'capitalize', marginTop: 16, marginBottom: 6 },
-  calDateLabel:{ fontSize: 14, fontWeight: '700', color: '#264653', marginBottom: 10, textTransform: 'capitalize' },
+  empty:      { textAlign: 'center', color: '#7A9AAB', fontSize: 15, marginTop: 40 },
+  groupHeader:{ fontSize: 14, fontWeight: '700', color: '#4A7080', textTransform: 'capitalize', marginTop: 16, marginBottom: 6 },
+  calDateLabel:{ fontSize: 15, fontWeight: '700', color: '#264653', marginBottom: 10, textTransform: 'capitalize' },
 
   taskCard: {
     backgroundColor: '#FFFFFF', borderRadius: 20, padding: 14, marginBottom: 8,
-    borderLeftWidth: 4,
+    borderLeftWidth: 4, borderLeftColor: '#FF7B54',
     shadowColor: '#FF7B54', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,26,0.35)' },
+  overlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,26,0.35)' },
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
@@ -579,22 +628,46 @@ const st = StyleSheet.create({
     fontSize: 15, color: '#264653', marginBottom: 14,
   },
   fieldLabel: {
-    fontSize: 12, fontWeight: '700', color: '#7A9AAB',
-    letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
+    fontSize: 14, fontWeight: '600', color: '#7A9AAB',
+    marginBottom: 8,
   },
   shortcutRow: { flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
   shortcutPill:       { borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#E0EDF2' },
   shortcutActive:     { backgroundColor: '#FF7B541F', borderWidth: 1.5, borderColor: '#FF7B54' },
-  shortcutText:       { fontSize: 13, fontWeight: '500', color: '#4A7080' },
+  shortcutText:       { fontSize: 14, fontWeight: '500', color: '#4A7080' },
   shortcutTextActive: { color: '#007A8A', fontWeight: '700' },
 
   pillRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   pill:    { flex: 1, borderRadius: 99, paddingVertical: 10, alignItems: 'center' },
-  pillText:{ fontSize: 12 },
+  pillText:{ fontSize: 14 },
 
   confirmBtn: {
     backgroundColor: '#FF7B54', borderRadius: 14, padding: 15,
     alignItems: 'center', marginTop: 4, marginBottom: 4,
   },
   confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  actionSheet: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 20, paddingHorizontal: 16, paddingBottom: 36,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12, shadowRadius: 16, elevation: 20,
+  },
+  actionTitle: {
+    fontSize: 13, fontWeight: '600', color: '#7A9AAB',
+    textAlign: 'center', marginBottom: 16, paddingHorizontal: 24,
+  },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 14,
+  },
+  actionIcon:   { fontSize: 20, width: 28, textAlign: 'center' },
+  actionLabel:  { fontSize: 16, fontWeight: '500', color: '#264653' },
+  actionDivider:{ height: 0.5, backgroundColor: '#E0EDF2' },
+  actionCancel: {
+    marginTop: 12, borderRadius: 14,
+    backgroundColor: '#F0F4F6', paddingVertical: 14, alignItems: 'center',
+  },
+  actionCancelText: { fontSize: 15, fontWeight: '600', color: '#7A9AAB' },
 })

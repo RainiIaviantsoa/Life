@@ -7,10 +7,10 @@ import type { FinanceCategory, FinanceEntry, FinanceType } from "@/types";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -21,7 +21,7 @@ import {
   View,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -66,23 +66,25 @@ function fmtDate(dateStr: string): string {
 
 // ─── TransactionItem ──────────────────────────────────────────────────────────
 
-function TransactionItem({ tx, isLast }: { tx: FinanceEntry; isLast: boolean }) {
+function TransactionItem({ tx, isLast, onLongPress }: { tx: FinanceEntry; isLast: boolean; onLongPress: () => void }) {
   const meta     = CategoryMeta[tx.category];
   const isIncome = tx.type === "income";
   return (
     <>
-      <View style={st.txRow}>
-        <View style={[st.txIcon, { backgroundColor: meta?.bg ?? "#EDE4D9" }]}>
-          <Text style={{ fontSize: 18 }}>{meta?.emoji ?? "📦"}</Text>
+      <TouchableOpacity onLongPress={onLongPress} delayLongPress={350} activeOpacity={0.85}>
+        <View style={st.txRow}>
+          <View style={[st.txIcon, { backgroundColor: meta?.bg ?? "#EDE4D9" }]}>
+            <Text style={{ fontSize: 18 }}>{meta?.emoji ?? "📦"}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={st.txLabel}>{tx.label}</Text>
+            <Text style={st.txCategory}>{meta?.label ?? tx.category}</Text>
+          </View>
+          <Text style={[st.txAmount, { color: isIncome ? "#2DC653" : "#FF7B54" }]}>
+            {isIncome ? "+" : "-"}{tx.amount}Ar
+          </Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={st.txLabel}>{tx.label}</Text>
-          <Text style={st.txCategory}>{meta?.label ?? tx.category}</Text>
-        </View>
-        <Text style={[st.txAmount, { color: isIncome ? "#2DC653" : "#FF7B54" }]}>
-          {isIncome ? "+" : "-"}{tx.amount}Ar
-        </Text>
-      </View>
+      </TouchableOpacity>
       {!isLast && <View style={st.separator} />}
     </>
   );
@@ -93,10 +95,11 @@ function TransactionItem({ tx, isLast }: { tx: FinanceEntry; isLast: boolean }) 
 type Tab = "today" | "week" | "month" | "abos";
 
 export default function FinanceScreen() {
+  const insets = useSafeAreaInsets()
   const {
     entries, budget, pots,
     subscriptions, wishlist, wishlistSavings,
-    load, addEntry, deleteEntry, setBudgetLimit,
+    load, addEntry, updateEntry, deleteEntry, setBudgetLimit,
     addPot, addToPot, deletePot,
     addSubscription, toggleSubscription, deleteSubscription,
     addWishlistItem, markWishlistPurchased, markWishlistSkipped,
@@ -107,6 +110,7 @@ export default function FinanceScreen() {
 
   // ── Transaction form ──
   const [showSheet,   setShowSheet]   = useState(false);
+  const [editingTx,   setEditingTx]   = useState<FinanceEntry | null>(null);
   const [sheetType,   setSheetType]   = useState<FinanceType>("expense");
   const [amount,      setAmount]      = useState("");
   const [txLabel,     setTxLabel]     = useState("");
@@ -143,6 +147,19 @@ export default function FinanceScreen() {
 
   useFocusEffect(useCallback(() => { load() }, []));
 
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      e => setKbHeight(e.endCoordinates.height)
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKbHeight(0)
+    );
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
   // ── Computed ──
   const today      = todayISO();
   const month      = monthISO();
@@ -177,13 +194,27 @@ export default function FinanceScreen() {
 
   const handleCloseSheet = () => {
     setShowSheet(false);
+    setEditingTx(null);
     setAmount(""); setTxLabel(""); setCategory("food"); setSheetType("expense");
+  };
+
+  const openEditSheet = (tx: FinanceEntry) => {
+    setEditingTx(tx);
+    setAmount(String(tx.amount));
+    setTxLabel(tx.label);
+    setCategory(tx.category);
+    setSheetType(tx.type);
+    setShowSheet(true);
   };
 
   const handleAdd = () => {
     const n = parseFloat(amount.replace(",", "."));
     if (!n || n <= 0) return;
-    addEntry(n, sheetType, category, txLabel.trim() || (CategoryMeta[category]?.label ?? category));
+    if (editingTx) {
+      updateEntry(editingTx.id, n, sheetType, category, txLabel.trim() || (CategoryMeta[category]?.label ?? category));
+    } else {
+      addEntry(n, sheetType, category, txLabel.trim() || (CategoryMeta[category]?.label ?? category));
+    }
     handleCloseSheet();
   };
 
@@ -238,7 +269,7 @@ export default function FinanceScreen() {
 
   return (
     <SafeAreaView style={st.safe} edges={["top"]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={st.scroll}
@@ -300,7 +331,7 @@ export default function FinanceScreen() {
                       value={budgetInput}
                       onChangeText={setBudgetInput}
                       keyboardType="numeric"
-                      autoFocus
+    
                       placeholder="Plafond Ar"
                       placeholderTextColor="#7A9AAB"
                       returnKeyType="done"
@@ -405,7 +436,7 @@ export default function FinanceScreen() {
                       key={tx.id}
                       rightActions={[{ label: "Supprimer", emoji: "🗑️", color: "#FF7B54", onPress: () => deleteEntry(tx.id) }]}
                     >
-                      <TransactionItem tx={tx} isLast={i === filtered.length - 1} />
+                      <TransactionItem tx={tx} isLast={i === filtered.length - 1} onLongPress={() => openEditSheet(tx)} />
                     </SwipeableRow>
                   ))}
                 </View>
@@ -564,9 +595,10 @@ export default function FinanceScreen() {
         {showSheet && (
           <>
             <Pressable style={st.overlay} onPress={handleCloseSheet} />
-            <View style={st.sheet}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                <Text style={st.sheetTitle}>Ajouter une transaction</Text>
+                <Text style={st.sheetTitle}>{editingTx ? "Modifier la transaction" : "Ajouter une transaction"}</Text>
                 <View style={st.typePills}>
                   {(["expense", "income"] as FinanceType[]).map(t => (
                     <TouchableOpacity
@@ -589,7 +621,7 @@ export default function FinanceScreen() {
                   onChangeText={setAmount}
                   keyboardType="decimal-pad"
                   textAlign="center"
-                  autoFocus
+
                 />
                 <TextInput
                   style={st.sheetInput}
@@ -626,7 +658,7 @@ export default function FinanceScreen() {
                   onPress={handleAdd}
                   disabled={!amount.trim()}
                 >
-                  <Text style={st.sheetConfirmText}>Ajouter</Text>
+                  <Text style={st.sheetConfirmText}>{editingTx ? "Enregistrer" : "Ajouter"}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleCloseSheet} style={st.cancelBtn}>
                   <Text style={st.cancelText}>Annuler</Text>
@@ -640,7 +672,8 @@ export default function FinanceScreen() {
         {showNewPotSheet && (
           <>
             <Pressable style={st.overlay} onPress={() => { setShowNewPotSheet(false); setShowPotCalendar(false); }} />
-            <View style={[st.sheet, { maxHeight: "92%" }]}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { maxHeight: "92%", bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={st.sheetTitle}>Nouveau pot d'épargne</Text>
                 <TextInput
@@ -649,7 +682,7 @@ export default function FinanceScreen() {
                   placeholderTextColor="#7A9AAB"
                   value={potName}
                   onChangeText={setPotName}
-                  autoFocus
+
                 />
                 <Text style={st.sheetLabel}>Emoji</Text>
                 <View style={st.emojiGrid}>
@@ -715,7 +748,8 @@ export default function FinanceScreen() {
         {addToPotId && (
           <>
             <Pressable style={st.overlay} onPress={() => setAddToPotId(null)} />
-            <View style={[st.sheet, { maxHeight: "40%" }]}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { maxHeight: "40%", bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <Text style={st.sheetTitle}>Ajouter au pot</Text>
               <TextInput
                 style={[st.amountInput, { color: "#0ABDE3", marginBottom: 16 }]}
@@ -745,7 +779,8 @@ export default function FinanceScreen() {
         {showSubSheet && (
           <>
             <Pressable style={st.overlay} onPress={() => { setShowSubSheet(false); setShowSubCalendar(false); }} />
-            <View style={[st.sheet, { maxHeight: "92%" }]}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { maxHeight: "92%", bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={st.sheetTitle}>Nouvel abonnement</Text>
                 <TextInput
@@ -754,7 +789,7 @@ export default function FinanceScreen() {
                   placeholderTextColor="#7A9AAB"
                   value={subName}
                   onChangeText={setSubName}
-                  autoFocus
+
                 />
                 <Text style={st.sheetLabel}>Emoji</Text>
                 <View style={st.emojiGrid}>
@@ -827,7 +862,8 @@ export default function FinanceScreen() {
         {showWishSheet && (
           <>
             <Pressable style={st.overlay} onPress={() => setShowWishSheet(false)} />
-            <View style={[st.sheet, { maxHeight: "65%" }]}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { maxHeight: "65%", bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={st.sheetTitle}>Ajouter un désir</Text>
                 <TextInput
@@ -836,7 +872,7 @@ export default function FinanceScreen() {
                   placeholderTextColor="#7A9AAB"
                   value={wishName}
                   onChangeText={setWishName}
-                  autoFocus
+
                 />
                 <TextInput
                   style={[st.amountInput, { color: "#0ABDE3" }]}
@@ -877,7 +913,7 @@ export default function FinanceScreen() {
             </View>
           </>
         )}
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

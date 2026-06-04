@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus } from 'lucide-react-native'
+import { Plus, Dumbbell, Zap, ArrowUp, Activity, Flame, Mountain, TrendingUp } from 'lucide-react-native'
+
+type WorkoutIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
 import {
   Alert,
   Animated,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
+
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,7 +17,7 @@ import {
   View,
 } from 'react-native'
 import { SwipeableRow } from '@/components/ui/SwipeableRow'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import * as Haptics from 'expo-haptics'
@@ -30,9 +33,9 @@ type WorkoutType = 'classic' | 'emom'
 
 interface PlannedExercise {
   id: string; name: string; sets: number; reps: number
-  weight: number | null; emoji: string
+  weight: number | null; Icon: WorkoutIcon
 }
-interface EmomEx      { name: string; reps: number; emoji: string }
+interface EmomEx      { name: string; reps: number; Icon: WorkoutIcon }
 interface HistoryItem { id: string; name: string; type: WorkoutType; duration: number; date: string }
 interface SheetEx     { name: string; sets: number; reps: number; weight: string }
 interface SetState    { weight: string; reps: string; rpe: number | null; done: boolean }
@@ -42,17 +45,17 @@ interface SetState    { weight: string; reps: string; rpe: number | null; done: 
 const RPE_VALUES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
 const mockExercises: PlannedExercise[] = [
-  { id: '1', name: 'Pompes',    sets: 3, reps: 15, weight: null, emoji: '💪' },
-  { id: '2', name: 'Squat',     sets: 4, reps: 12, weight: 20,   emoji: '🏋️' },
-  { id: '3', name: 'Tractions', sets: 3, reps: 8,  weight: null, emoji: '🔝' },
-  { id: '4', name: 'Gainage',   sets: 3, reps: 60, weight: null, emoji: '⚡' },
+  { id: '1', name: 'Pompes',    sets: 3, reps: 15, weight: null, Icon: Activity },
+  { id: '2', name: 'Squat',     sets: 4, reps: 12, weight: 20,   Icon: Dumbbell },
+  { id: '3', name: 'Tractions', sets: 3, reps: 8,  weight: null, Icon: ArrowUp  },
+  { id: '4', name: 'Gainage',   sets: 3, reps: 60, weight: null, Icon: Zap      },
 ]
 
 const mockEmomExercises: EmomEx[] = [
-  { name: 'Burpees',           reps: 10, emoji: '🔥' },
-  { name: 'Squat jump',        reps: 15, emoji: '⚡' },
-  { name: 'Mountain climbers', reps: 20, emoji: '🏔️' },
-  { name: 'Push-ups',          reps: 12, emoji: '💪' },
+  { name: 'Burpees',           reps: 10, Icon: Flame      },
+  { name: 'Squat jump',        reps: 15, Icon: TrendingUp },
+  { name: 'Mountain climbers', reps: 20, Icon: Mountain   },
+  { name: 'Push-ups',          reps: 12, Icon: Activity   },
 ]
 
 const INITIAL_HISTORY: HistoryItem[] = [
@@ -164,7 +167,7 @@ function ActiveExerciseCard({
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <View style={st.exIcon}>
-          <Text style={{ fontSize: 18 }}>{ex.emoji}</Text>
+          <ex.Icon size={18} color="#FF9F1C" strokeWidth={2} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={st.exName}>{ex.name}</Text>
@@ -264,7 +267,7 @@ function ExerciceItem({ ex, isLast }: { ex: PlannedExercise; isLast: boolean }) 
     <>
       <View style={st.exRow}>
         <View style={st.exIcon}>
-          <Text style={{ fontSize: 18 }}>{ex.emoji}</Text>
+          <ex.Icon size={18} color="#FF9F1C" strokeWidth={2} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={st.exName}>{ex.name}</Text>
@@ -310,6 +313,13 @@ function HistoryCard({ item }: { item: HistoryItem }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function WorkoutScreen() {
+  const insets = useSafeAreaInsets()
+  const [kbHeight, setKbHeight] = useState(0)
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', e => setKbHeight(e.endCoordinates.height))
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKbHeight(0))
+    return () => { show.remove(); hide.remove() }
+  }, [])
   const [tab,       setTab]       = useState<WorkoutType>('classic')
   const [showSheet, setShowSheet] = useState(false)
   const [history,   setHistory]   = useState<HistoryItem[]>(INITIAL_HISTORY)
@@ -439,7 +449,7 @@ export default function WorkoutScreen() {
 
   return (
     <SafeAreaView style={st.safe} edges={['top']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={{ flex: 1 }}>
 
         <ScrollView
           style={{ flex: 1 }}
@@ -517,9 +527,10 @@ export default function WorkoutScreen() {
               <View style={st.timerCard}>
                 <Text style={st.timerLabel}>EMOM EN COURS</Text>
                 <Text style={st.timerClock}>{formatTimer(timer.currentSecond)}</Text>
-                <Text style={st.timerExercise}>
-                  {currentEmomEx.emoji} {currentEmomEx.name} × {currentEmomEx.reps}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <currentEmomEx.Icon size={20} color="rgba(255,255,255,0.9)" strokeWidth={2} />
+                  <Text style={[st.timerExercise, { marginBottom: 0 }]}>{currentEmomEx.name} × {currentEmomEx.reps}</Text>
+                </View>
                 <View style={st.timerInfoRow}>
                   <Text style={st.timerMinute}>
                     Minute {timer.currentMinute} / {timer.totalMinutes}
@@ -539,7 +550,7 @@ export default function WorkoutScreen() {
               <View style={st.exCard}>
                 <View style={st.exRow}>
                   <View style={st.exIcon}>
-                    <Text style={{ fontSize: 18 }}>{nextEmomEx.emoji}</Text>
+                    <nextEmomEx.Icon size={18} color="#FF9F1C" strokeWidth={2} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={st.exName}>{nextEmomEx.name}</Text>
@@ -618,7 +629,8 @@ export default function WorkoutScreen() {
         {showSheet && (
           <>
             <Pressable style={st.overlay} onPress={handleCloseSheet} />
-            <View style={st.sheet}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={st.sheetTitle}>Nouvelle séance</Text>
 
@@ -628,7 +640,7 @@ export default function WorkoutScreen() {
                   placeholderTextColor="#7A9AAB"
                   value={sName}
                   onChangeText={setSName}
-                  autoFocus
+
                   selectionColor="#FF9F1C"
                 />
 
@@ -689,7 +701,7 @@ export default function WorkoutScreen() {
                       placeholderTextColor="#7A9AAB"
                       value={exName}
                       onChangeText={setExName}
-                      autoFocus
+    
                       selectionColor="#FF9F1C"
                     />
                     {sType === 'classic' && (
@@ -773,7 +785,7 @@ export default function WorkoutScreen() {
           </>
         )}
 
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   )
 }

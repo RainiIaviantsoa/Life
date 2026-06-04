@@ -23,6 +23,7 @@ interface FinanceState {
   loadWishlist:       () => void
 
   addEntry:           (amount: number, type: FinanceType, category: FinanceCategory, label: string) => void
+  updateEntry:        (id: string, amount: number, type: FinanceType, category: FinanceCategory, label: string) => void
   deleteEntry:        (id: string) => void
   setBudgetLimit:     (limit: number) => void
 
@@ -81,6 +82,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     get().load()
   },
 
+  updateEntry: (id, amount, type, category, label) => { FinancesDB.update(id, { amount, type, category, label }); get().load() },
   deleteEntry: (id) => { FinancesDB.delete(id); get().load() },
 
   setBudgetLimit: (limit) => { BudgetsDB.upsert(monthISO(), limit); get().load() },

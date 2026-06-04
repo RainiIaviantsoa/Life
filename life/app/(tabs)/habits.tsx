@@ -1,9 +1,9 @@
-import React, { useCallback, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react-native'
 import {
   Alert,
   Animated,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -14,9 +14,8 @@ import {
   View,
 } from 'react-native'
 import { SwipeableRow } from '@/components/ui/SwipeableRow'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
-import { useState } from 'react'
 import { SectionLabel, StatCard } from '@/components/ui'
 import { useHabitsStore } from '@/store/habitsStore'
 import type { Habit } from '@/types'
@@ -111,6 +110,13 @@ function HabitItem({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HabitsScreen() {
+  const insets = useSafeAreaInsets()
+  const [kbHeight, setKbHeight] = useState(0)
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', e => setKbHeight(e.endCoordinates.height))
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKbHeight(0))
+    return () => { show.remove(); hide.remove() }
+  }, [])
   const { habits, load, addHabit, toggleHabit, deleteHabit, useFreeze } = useHabitsStore()
   const [showSheet,          setShowSheet]          = useState(false)
   const [newName,            setNewName]            = useState('')
@@ -140,7 +146,7 @@ export default function HabitsScreen() {
 
   return (
     <SafeAreaView style={st.safe} edges={['top']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {/* Header */}
@@ -214,9 +220,10 @@ export default function HabitsScreen() {
         {showSheet && (
           <>
             <Pressable style={st.overlay} onPress={handleCancel} />
-            <View style={st.sheet}>
+            {kbHeight > 0 && <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, kbHeight - insets.bottom - 40), backgroundColor: '#fff' }} />}
+            <View style={[st.sheet, { bottom: kbHeight > 0 ? Math.max(0, kbHeight - insets.bottom - 40) : 0, paddingBottom: kbHeight > 0 ? 26 : 36 }]}>
               <Text style={st.sheetTitle}>Nouvelle habitude</Text>
-              <TextInput style={st.sheetInput} placeholder="Nom de l'habitude…" placeholderTextColor="#7A9AAB" value={newName} onChangeText={setNewName} autoFocus selectionColor="#2DC653" />
+              <TextInput style={st.sheetInput} placeholder="Nom de l'habitude…" placeholderTextColor="#7A9AAB" value={newName} onChangeText={setNewName} selectionColor="#2DC653" />
               <Text style={st.sheetLabel}>Emoji</Text>
               <View style={{ gap: 8, marginBottom: 16 }}>
                 {emojiRows.map((row, ri) => (
@@ -281,7 +288,7 @@ export default function HabitsScreen() {
             </View>
           </>
         )}
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   )
 }
