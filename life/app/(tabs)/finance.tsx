@@ -1,3 +1,4 @@
+import { Plus, X } from 'lucide-react-native'
 import { SectionLabel } from "@/components/ui";
 import { SwipeableRow } from "@/components/ui/SwipeableRow";
 import { monthISO, todayISO } from "@/database";
@@ -25,21 +26,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CategoryMeta: Record<FinanceCategory, { emoji: string; color: string; bg: string; label: string }> = {
-  food:          { emoji: "🍔", color: "#FF9500", bg: "#FF95001F", label: "Nourriture" },
-  transport:     { emoji: "🚗", color: "#0099FF", bg: "#0099FF1F", label: "Transport" },
-  sport:         { emoji: "🏋️", color: "#00C896", bg: "#00C8961F", label: "Sport" },
-  health:        { emoji: "💊", color: "#FF5C5C", bg: "#FF5C5C1F", label: "Santé" },
-  entertainment: { emoji: "🎬", color: "#6C47FF", bg: "#6C47FF1F", label: "Loisirs" },
-  shopping:      { emoji: "🛍️", color: "#FF3CAC", bg: "#FF3CAC1F", label: "Shopping" },
-  bills:         { emoji: "📄", color: "#A0A0B8", bg: "#A0A0B81F", label: "Factures" },
-  salary:        { emoji: "💼", color: "#00C896", bg: "#00C8961F", label: "Salaire" },
-  freelance:     { emoji: "💻", color: "#6C47FF", bg: "#6C47FF1F", label: "Freelance" },
-  other:         { emoji: "📦", color: "#A0A0B8", bg: "#A0A0B81F", label: "Autre" },
+  food:          { emoji: "🍔", color: "#FF9F1C", bg: "#FF9F1C1F", label: "Nourriture" },
+  transport:     { emoji: "🚗", color: "#0ABDE3", bg: "#0ABDE31F", label: "Transport" },
+  sport:         { emoji: "🏋️", color: "#2DC653", bg: "#2DC6531F", label: "Sport" },
+  health:        { emoji: "💊", color: "#FF7B54", bg: "#FF7B541F", label: "Santé" },
+  entertainment: { emoji: "🎬", color: "#0ABDE3", bg: "#0ABDE31F", label: "Loisirs" },
+  shopping:      { emoji: "🛍️", color: "#FF7B54", bg: "#FF7B541F", label: "Shopping" },
+  bills:         { emoji: "📄", color: "#7A9AAB", bg: "#7A9AAB1F", label: "Factures" },
+  salary:        { emoji: "💼", color: "#2DC653", bg: "#2DC6531F", label: "Salaire" },
+  freelance:     { emoji: "💻", color: "#0ABDE3", bg: "#0ABDE31F", label: "Freelance" },
+  other:         { emoji: "📦", color: "#7A9AAB", bg: "#7A9AAB1F", label: "Autre" },
 };
 const ALL_CATS = Object.keys(CategoryMeta) as FinanceCategory[];
 
 const POT_EMOJIS  = ["🏦", "✈️", "🏠", "🚗", "💻", "👟", "💍", "🎓", "🏋️", "🎮", "🌴", "💊"];
-const POT_COLORS  = ["#6C47FF", "#FF5C5C", "#00C896", "#FF9500", "#0099FF", "#FF3CAC"];
+const POT_COLORS  = ["#0ABDE3", "#FF7B54", "#2DC653", "#7A9AAB", "#00BFA6", "#FF9F1C"];
 const SUB_EMOJIS  = ["📱", "🎵", "📺", "🎮", "💪", "📧", "☁️", "🎬", "📰", "🛡️", "💻", "🎯"];
 const WISH_EMOJIS = ["🛍️", "👟", "💻", "📱", "🎮", "✈️", "👜", "⌚", "📷", "🎸"];
 const FREQ_LABELS = { monthly: "/mois", yearly: "/an", weekly: "/sem" };
@@ -71,14 +72,14 @@ function TransactionItem({ tx, isLast }: { tx: FinanceEntry; isLast: boolean }) 
   return (
     <>
       <View style={st.txRow}>
-        <View style={[st.txIcon, { backgroundColor: meta?.bg ?? "#F0F0F8" }]}>
+        <View style={[st.txIcon, { backgroundColor: meta?.bg ?? "#EDE4D9" }]}>
           <Text style={{ fontSize: 18 }}>{meta?.emoji ?? "📦"}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={st.txLabel}>{tx.label}</Text>
           <Text style={st.txCategory}>{meta?.label ?? tx.category}</Text>
         </View>
-        <Text style={[st.txAmount, { color: isIncome ? "#00C896" : "#FF5C5C" }]}>
+        <Text style={[st.txAmount, { color: isIncome ? "#2DC653" : "#FF7B54" }]}>
           {isIncome ? "+" : "-"}{tx.amount}Ar
         </Text>
       </View>
@@ -117,7 +118,7 @@ export default function FinanceScreen() {
   const [showNewPotSheet,  setShowNewPotSheet]  = useState(false);
   const [potName,          setPotName]          = useState("");
   const [potEmoji,         setPotEmoji]         = useState("🏦");
-  const [potColor,         setPotColor]         = useState("#6C47FF");
+  const [potColor,         setPotColor]         = useState("#0ABDE3");
   const [potTarget,        setPotTarget]        = useState("");
   const [potDeadline,      setPotDeadline]      = useState("");
   const [showPotCalendar,  setShowPotCalendar]  = useState(false);
@@ -198,7 +199,7 @@ export default function FinanceScreen() {
     if (isNaN(target) || target <= 0) return;
     addPot(potName.trim(), potEmoji, potColor, target, potDeadline || undefined);
     setShowNewPotSheet(false);
-    setPotName(""); setPotEmoji("🏦"); setPotColor("#6C47FF");
+    setPotName(""); setPotEmoji("🏦"); setPotColor("#0ABDE3");
     setPotTarget(""); setPotDeadline(""); setShowPotCalendar(false);
   };
 
@@ -252,7 +253,7 @@ export default function FinanceScreen() {
             </View>
             {tab !== "abos" && (
               <TouchableOpacity style={st.addBtn} onPress={() => setShowSheet(true)} activeOpacity={0.85}>
-                <Text style={st.addBtnText}>+</Text>
+                <Plus size={22} color="#fff" strokeWidth={2.5} />
               </TouchableOpacity>
             )}
           </View>
@@ -277,11 +278,11 @@ export default function FinanceScreen() {
               {/* Stats */}
               <View style={st.statsRow}>
                 <View style={st.statCard}>
-                  <Text style={[st.statValue, { color: "#00C896" }]}>{budget.income}Ar</Text>
+                  <Text style={[st.statValue, { color: "#2DC653" }]}>{budget.income}Ar</Text>
                   <Text style={st.statLabel}>Revenus</Text>
                 </View>
                 <View style={st.statCard}>
-                  <Text style={[st.statValue, { color: "#FF5C5C" }]}>{budget.spent}Ar</Text>
+                  <Text style={[st.statValue, { color: "#FF7B54" }]}>{budget.spent}Ar</Text>
                   <Text style={st.statLabel}>Dépenses</Text>
                 </View>
               </View>
@@ -301,11 +302,11 @@ export default function FinanceScreen() {
                       keyboardType="numeric"
                       autoFocus
                       placeholder="Plafond Ar"
-                      placeholderTextColor="#A0A0B8"
+                      placeholderTextColor="#7A9AAB"
                       returnKeyType="done"
                       onSubmitEditing={handleSaveBudget}
                     />
-                    <TouchableOpacity onPress={handleSaveBudget} style={{ backgroundColor: "#6C47FF", borderRadius: 10, padding: 8 }}>
+                    <TouchableOpacity onPress={handleSaveBudget} style={{ backgroundColor: "#0ABDE3", borderRadius: 10, padding: 8 }}>
                       <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>OK</Text>
                     </TouchableOpacity>
                   </View>
@@ -347,7 +348,7 @@ export default function FinanceScreen() {
                 return (
                   <SwipeableRow
                     key={pot.id}
-                    rightActions={[{ label: "Supprimer", emoji: "🗑️", color: "#FF5C5C", onPress: () =>
+                    rightActions={[{ label: "Supprimer", emoji: "🗑️", color: "#FF7B54", onPress: () =>
                       Alert.alert("Supprimer ce pot ?", pot.name, [
                         { text: "Annuler", style: "cancel" },
                         { text: "Supprimer", style: "destructive", onPress: () => deletePot(pot.id) },
@@ -402,7 +403,7 @@ export default function FinanceScreen() {
                   {filtered.map((tx, i) => (
                     <SwipeableRow
                       key={tx.id}
-                      rightActions={[{ label: "Supprimer", emoji: "🗑️", color: "#FF5C5C", onPress: () => deleteEntry(tx.id) }]}
+                      rightActions={[{ label: "Supprimer", emoji: "🗑️", color: "#FF7B54", onPress: () => deleteEntry(tx.id) }]}
                     >
                       <TransactionItem tx={tx} isLast={i === filtered.length - 1} />
                     </SwipeableRow>
@@ -422,7 +423,7 @@ export default function FinanceScreen() {
               </View>
 
               <TouchableOpacity
-                style={[st.cutBtn, showCutFilter && { backgroundColor: "#FF9500", borderColor: "#FF9500" }]}
+                style={[st.cutBtn, showCutFilter && { backgroundColor: "#FF9F1C", borderColor: "#FF9F1C" }]}
                 onPress={() => setShowCutFilter(v => !v)}
                 activeOpacity={0.8}
               >
@@ -441,11 +442,11 @@ export default function FinanceScreen() {
                   leftActions={[{
                     emoji: sub.active === 1 ? "⏸️" : "▶️",
                     label: sub.active === 1 ? "Désactiver" : "Activer",
-                    color: sub.active === 1 ? "#FF9500" : "#00C896",
+                    color: sub.active === 1 ? "#FF9F1C" : "#2DC653",
                     onPress: () => toggleSubscription(sub.id),
                   }]}
                   rightActions={[{
-                    emoji: "🗑️", label: "Supprimer", color: "#FF5C5C",
+                    emoji: "🗑️", label: "Supprimer", color: "#FF7B54",
                     onPress: () => Alert.alert("Supprimer ?", sub.name, [
                       { text: "Annuler", style: "cancel" },
                       { text: "Supprimer", style: "destructive", onPress: () => deleteSubscription(sub.id) },
@@ -466,8 +467,8 @@ export default function FinanceScreen() {
                       <Text style={st.subAmount}>
                         {sub.amount}Ar{FREQ_LABELS[sub.frequency as keyof typeof FREQ_LABELS] ?? ""}
                       </Text>
-                      <View style={[st.subBadge, { backgroundColor: sub.active === 1 ? "#00C8961F" : "#F0F0F8" }]}>
-                        <Text style={[st.subBadgeText, { color: sub.active === 1 ? "#00C896" : "#A0A0B8" }]}>
+                      <View style={[st.subBadge, { backgroundColor: sub.active === 1 ? "#2DC6531F" : "#EDE4D9" }]}>
+                        <Text style={[st.subBadgeText, { color: sub.active === 1 ? "#2DC653" : "#7A9AAB" }]}>
                           {sub.active === 1 ? "Actif" : "Inactif"}
                         </Text>
                       </View>
@@ -498,7 +499,7 @@ export default function FinanceScreen() {
                 const unlocked = item.unlockDate <= today;
                 const daysLeft = Math.max(0, Math.ceil((unlockMs - nowMs) / 86_400_000));
                 const elapsed  = Math.min(1, Math.max(0, (nowMs - addedMs) / Math.max(1, unlockMs - addedMs)));
-                const barColor = elapsed < 0.5 ? "#FF5C5C" : elapsed < 0.8 ? "#FF9500" : "#00C896";
+                const barColor = elapsed < 0.5 ? "#FF7B54" : elapsed < 0.8 ? "#FF9F1C" : "#2DC653";
 
                 return (
                   <View key={item.id} style={st.wishCard}>
@@ -530,14 +531,14 @@ export default function FinanceScreen() {
                     {unlocked && (
                       <View style={st.wishActions}>
                         <TouchableOpacity
-                          style={[st.wishActionBtn, { backgroundColor: "#FF5C5C" }]}
+                          style={[st.wishActionBtn, { backgroundColor: "#FF7B54" }]}
                           onPress={() => markWishlistPurchased(item.id)}
                           activeOpacity={0.8}
                         >
                           <Text style={st.wishActionText}>🛒 J'achète</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[st.wishActionBtn, { backgroundColor: "#00C896" }]}
+                          style={[st.wishActionBtn, { backgroundColor: "#2DC653" }]}
                           onPress={() => markWishlistSkipped(item.id)}
                           activeOpacity={0.8}
                         >
@@ -570,7 +571,7 @@ export default function FinanceScreen() {
                   {(["expense", "income"] as FinanceType[]).map(t => (
                     <TouchableOpacity
                       key={t}
-                      style={[st.typePill, sheetType === t && { backgroundColor: t === "expense" ? "#FF5C5C" : "#00C896" }]}
+                      style={[st.typePill, sheetType === t && { backgroundColor: t === "expense" ? "#FF7B54" : "#2DC653" }]}
                       onPress={() => setSheetType(t)}
                       activeOpacity={0.8}
                     >
@@ -581,9 +582,9 @@ export default function FinanceScreen() {
                   ))}
                 </View>
                 <TextInput
-                  style={[st.amountInput, { color: sheetType === "expense" ? "#FF5C5C" : "#00C896" }]}
+                  style={[st.amountInput, { color: sheetType === "expense" ? "#FF7B54" : "#2DC653" }]}
                   placeholder="0"
-                  placeholderTextColor="#DDDDE8"
+                  placeholderTextColor="#C5D5DC"
                   value={amount}
                   onChangeText={setAmount}
                   keyboardType="decimal-pad"
@@ -593,7 +594,7 @@ export default function FinanceScreen() {
                 <TextInput
                   style={st.sheetInput}
                   placeholder="Description…"
-                  placeholderTextColor="#A0A0B8"
+                  placeholderTextColor="#7A9AAB"
                   value={txLabel}
                   onChangeText={setTxLabel}
                 />
@@ -621,7 +622,7 @@ export default function FinanceScreen() {
                   })}
                 </View>
                 <TouchableOpacity
-                  style={[st.sheetConfirm, { backgroundColor: sheetType === "expense" ? "#FF5C5C" : "#00C896" }, !amount.trim() && { opacity: 0.45 }]}
+                  style={[st.sheetConfirm, { backgroundColor: sheetType === "expense" ? "#FF7B54" : "#2DC653" }, !amount.trim() && { opacity: 0.45 }]}
                   onPress={handleAdd}
                   disabled={!amount.trim()}
                 >
@@ -645,7 +646,7 @@ export default function FinanceScreen() {
                 <TextInput
                   style={st.sheetInput}
                   placeholder="Nom du pot…"
-                  placeholderTextColor="#A0A0B8"
+                  placeholderTextColor="#7A9AAB"
                   value={potName}
                   onChangeText={setPotName}
                   autoFocus
@@ -667,7 +668,7 @@ export default function FinanceScreen() {
                 <TextInput
                   style={[st.amountInput, { color: potColor, marginTop: 4 }]}
                   placeholder="Objectif (Ar)"
-                  placeholderTextColor="#DDDDE8"
+                  placeholderTextColor="#C5D5DC"
                   value={potTarget}
                   onChangeText={setPotTarget}
                   keyboardType="decimal-pad"
@@ -677,12 +678,12 @@ export default function FinanceScreen() {
                   style={[st.sheetInput, { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
                   onPress={() => setShowPotCalendar(v => !v)}
                 >
-                  <Text style={{ color: potDeadline ? "#0D0D1A" : "#A0A0B8", fontSize: 15 }}>
+                  <Text style={{ color: potDeadline ? "#264653" : "#7A9AAB", fontSize: 15 }}>
                     {potDeadline ? `🗓️ ${fmtDate(potDeadline)}` : "Date limite (optionnel)"}
                   </Text>
                   {potDeadline && (
                     <TouchableOpacity onPress={() => { setPotDeadline(""); setShowPotCalendar(false); }}>
-                      <Text style={{ color: "#A0A0B8" }}>✕</Text>
+                      <X size={16} color="#7A9AAB" strokeWidth={2} />
                     </TouchableOpacity>
                   )}
                 </TouchableOpacity>
@@ -717,9 +718,9 @@ export default function FinanceScreen() {
             <View style={[st.sheet, { maxHeight: "40%" }]}>
               <Text style={st.sheetTitle}>Ajouter au pot</Text>
               <TextInput
-                style={[st.amountInput, { color: "#6C47FF", marginBottom: 16 }]}
+                style={[st.amountInput, { color: "#0ABDE3", marginBottom: 16 }]}
                 placeholder="Montant (Ar)"
-                placeholderTextColor="#DDDDE8"
+                placeholderTextColor="#C5D5DC"
                 value={addToPotAmount}
                 onChangeText={setAddToPotAmount}
                 keyboardType="decimal-pad"
@@ -727,7 +728,7 @@ export default function FinanceScreen() {
                 autoFocus
               />
               <TouchableOpacity
-                style={[st.sheetConfirm, { backgroundColor: "#6C47FF" }, !addToPotAmount.trim() && { opacity: 0.45 }]}
+                style={[st.sheetConfirm, { backgroundColor: "#0ABDE3" }, !addToPotAmount.trim() && { opacity: 0.45 }]}
                 onPress={handleAddToPot}
                 disabled={!addToPotAmount.trim()}
               >
@@ -750,7 +751,7 @@ export default function FinanceScreen() {
                 <TextInput
                   style={st.sheetInput}
                   placeholder="Nom (Netflix, Spotify…)"
-                  placeholderTextColor="#A0A0B8"
+                  placeholderTextColor="#7A9AAB"
                   value={subName}
                   onChangeText={setSubName}
                   autoFocus
@@ -764,9 +765,9 @@ export default function FinanceScreen() {
                   ))}
                 </View>
                 <TextInput
-                  style={[st.amountInput, { color: "#6C47FF" }]}
+                  style={[st.amountInput, { color: "#0ABDE3" }]}
                   placeholder="Montant (Ar)"
-                  placeholderTextColor="#DDDDE8"
+                  placeholderTextColor="#C5D5DC"
                   value={subAmount}
                   onChangeText={setSubAmount}
                   keyboardType="decimal-pad"
@@ -777,7 +778,7 @@ export default function FinanceScreen() {
                   {FREQ_OPTIONS.map(f => (
                     <TouchableOpacity
                       key={f.key}
-                      style={[st.typePill, subFrequency === f.key && { backgroundColor: "#6C47FF" }]}
+                      style={[st.typePill, subFrequency === f.key && { backgroundColor: "#0ABDE3" }]}
                       onPress={() => setSubFrequency(f.key)}
                     >
                       <Text style={[st.typePillText, subFrequency === f.key && { color: "#fff", fontWeight: "700" }]}>{f.label}</Text>
@@ -789,26 +790,26 @@ export default function FinanceScreen() {
                   style={[st.sheetInput, { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
                   onPress={() => setShowSubCalendar(v => !v)}
                 >
-                  <Text style={{ color: subNextDate ? "#0D0D1A" : "#A0A0B8", fontSize: 15 }}>
+                  <Text style={{ color: subNextDate ? "#264653" : "#7A9AAB", fontSize: 15 }}>
                     {subNextDate ? `🗓️ ${fmtDate(subNextDate)}` : "Choisir une date…"}
                   </Text>
                   {subNextDate && (
                     <TouchableOpacity onPress={() => { setSubNextDate(""); setShowSubCalendar(false); }}>
-                      <Text style={{ color: "#A0A0B8" }}>✕</Text>
+                      <X size={16} color="#7A9AAB" strokeWidth={2} />
                     </TouchableOpacity>
                   )}
                 </TouchableOpacity>
                 {showSubCalendar && (
                   <Calendar
                     onDayPress={day => { setSubNextDate(day.dateString); setShowSubCalendar(false); }}
-                    markedDates={subNextDate ? { [subNextDate]: { selected: true, selectedColor: "#6C47FF" } } : {}}
+                    markedDates={subNextDate ? { [subNextDate]: { selected: true, selectedColor: "#0ABDE3" } } : {}}
                     minDate={today}
-                    theme={{ selectedDayBackgroundColor: "#6C47FF", todayTextColor: "#6C47FF", arrowColor: "#6C47FF" }}
+                    theme={{ selectedDayBackgroundColor: "#0ABDE3", todayTextColor: "#0ABDE3", arrowColor: "#0ABDE3" }}
                     style={{ borderRadius: 16, marginBottom: 14, overflow: "hidden" }}
                   />
                 )}
                 <TouchableOpacity
-                  style={[st.sheetConfirm, { backgroundColor: "#6C47FF" }, (!subName.trim() || !subAmount.trim() || !subNextDate) && { opacity: 0.45 }]}
+                  style={[st.sheetConfirm, { backgroundColor: "#0ABDE3" }, (!subName.trim() || !subAmount.trim() || !subNextDate) && { opacity: 0.45 }]}
                   onPress={handleCreateSub}
                   disabled={!subName.trim() || !subAmount.trim() || !subNextDate}
                 >
@@ -832,15 +833,15 @@ export default function FinanceScreen() {
                 <TextInput
                   style={st.sheetInput}
                   placeholder="Ce que tu veux…"
-                  placeholderTextColor="#A0A0B8"
+                  placeholderTextColor="#7A9AAB"
                   value={wishName}
                   onChangeText={setWishName}
                   autoFocus
                 />
                 <TextInput
-                  style={[st.amountInput, { color: "#6C47FF" }]}
+                  style={[st.amountInput, { color: "#0ABDE3" }]}
                   placeholder="Prix (Ar)"
-                  placeholderTextColor="#DDDDE8"
+                  placeholderTextColor="#C5D5DC"
                   value={wishAmount}
                   onChangeText={setWishAmount}
                   keyboardType="decimal-pad"
@@ -863,7 +864,7 @@ export default function FinanceScreen() {
                   ))}
                 </View>
                 <TouchableOpacity
-                  style={[st.sheetConfirm, { backgroundColor: "#6C47FF" }, (!wishName.trim() || !wishAmount.trim()) && { opacity: 0.45 }]}
+                  style={[st.sheetConfirm, { backgroundColor: "#0ABDE3" }, (!wishName.trim() || !wishAmount.trim()) && { opacity: 0.45 }]}
                   onPress={handleCreateWish}
                   disabled={!wishName.trim() || !wishAmount.trim()}
                 >
@@ -884,92 +885,92 @@ export default function FinanceScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: "#F7F7FA" },
+  safe:   { flex: 1, backgroundColor: "#FFF8F0" },
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
 
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16, marginBottom: 12 },
-  headerTitle: { fontSize: 26, fontWeight: "900", color: "#0D0D1A", letterSpacing: -0.5 },
-  headerSub:   { fontSize: 13, color: "#6B6B85", marginTop: 2, textTransform: "capitalize" },
-  addBtn:      { width: 40, height: 40, borderRadius: 99, backgroundColor: "#FF5C5C", alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontSize: 26, fontWeight: "900", color: "#0ABDE3", letterSpacing: -0.5 },
+  headerSub:   { fontSize: 13, color: "#4A7080", marginTop: 2, textTransform: "capitalize" },
+  addBtn:      { width: 40, height: 40, borderRadius: 99, backgroundColor: "#FF7B54", alignItems: "center", justifyContent: "center" },
   addBtnText:  { color: "#fff", fontSize: 24, lineHeight: 26 },
 
   // ── Tabs ──
   tabBar:       { flexDirection: "row", gap: 6, marginBottom: 16 },
-  tabPill:      { borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: "#EEEEF5" },
-  tabPillActive:{ backgroundColor: "#6C47FF" },
-  tabText:      { fontSize: 13, fontWeight: "500", color: "#6B6B85" },
+  tabPill:      { borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: "#E0EDF2" },
+  tabPillActive:{ backgroundColor: "#0ABDE3" },
+  tabText:      { fontSize: 13, fontWeight: "500", color: "#4A7080" },
   tabTextActive:{ color: "#fff", fontWeight: "700" },
 
   // ── Stats ──
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
-  statCard: { flex: 1, backgroundColor: "#fff", borderRadius: 16, padding: 14, shadowColor: "#6C47FF", shadowOpacity: 0.06, elevation: 2 },
+  statCard: { flex: 1, backgroundColor: "#fff", borderRadius: 16, padding: 14, shadowColor: "#0ABDE3", shadowOpacity: 0.06, elevation: 2 },
   statValue:{ fontSize: 22, fontWeight: "900", marginBottom: 2 },
-  statLabel:{ fontSize: 12, color: "#6B6B85", fontWeight: "500" },
+  statLabel:{ fontSize: 12, color: "#4A7080", fontWeight: "500" },
 
   // ── Budget ──
-  budgetCard:    { backgroundColor: "#fff", borderRadius: 20, borderLeftWidth: 4, borderLeftColor: "#6C47FF", padding: 16, marginBottom: 12, shadowColor: "#6C47FF", shadowOpacity: 0.08, elevation: 3 },
+  budgetCard:    { backgroundColor: "#fff", borderRadius: 20, borderLeftWidth: 4, borderLeftColor: "#0ABDE3", padding: 16, marginBottom: 12, shadowColor: "#0ABDE3", shadowOpacity: 0.08, elevation: 3 },
   budgetTopRow:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  budgetTitle:   { fontSize: 13, fontWeight: "700", color: "#0D0D1A" },
-  budgetAmount:  { fontSize: 13, fontWeight: "800", color: "#6C47FF" },
-  budgetTrack:   { backgroundColor: "#EEEEF5", height: 10, borderRadius: 99, marginVertical: 10, overflow: "hidden" },
-  budgetFill:    { backgroundColor: "#6C47FF", height: 10, borderRadius: 99 },
+  budgetTitle:   { fontSize: 13, fontWeight: "700", color: "#264653" },
+  budgetAmount:  { fontSize: 13, fontWeight: "800", color: "#0ABDE3" },
+  budgetTrack:   { backgroundColor: "#E0EDF2", height: 10, borderRadius: 99, marginVertical: 10, overflow: "hidden" },
+  budgetFill:    { backgroundColor: "#0ABDE3", height: 10, borderRadius: 99 },
   budgetBottomRow:{ flexDirection: "row", justifyContent: "space-between" },
-  budgetUsed:    { fontSize: 12, color: "#6B6B85" },
-  budgetLeft:    { fontSize: 12, fontWeight: "700", color: "#00C896" },
-  budgetEditInput:{ backgroundColor: "#F7F7FA", borderRadius: 10, padding: 10, fontSize: 15, color: "#0D0D1A" },
+  budgetUsed:    { fontSize: 12, color: "#4A7080" },
+  budgetLeft:    { fontSize: 12, fontWeight: "700", color: "#2DC653" },
+  budgetEditInput:{ backgroundColor: "#FFF8F0", borderRadius: 10, padding: 10, fontSize: 15, color: "#264653" },
 
-  alert:    { backgroundColor: "#FF5C5C1F", borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  alertText:{ fontSize: 13, fontWeight: "600", color: "#CC2222", flex: 1 },
+  alert:    { backgroundColor: "#FF7B541F", borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  alertText:{ fontSize: 13, fontWeight: "600", color: "#D94520", flex: 1 },
 
   // ── Pots ──
-  potCard:       { backgroundColor: "#fff", borderRadius: 20, padding: 16, marginBottom: 10, borderLeftWidth: 4, shadowColor: "#6C47FF", shadowOpacity: 0.06, elevation: 2 },
+  potCard:       { backgroundColor: "#fff", borderRadius: 20, padding: 16, marginBottom: 10, borderLeftWidth: 4, shadowColor: "#0ABDE3", shadowOpacity: 0.06, elevation: 2 },
   potEmojiBubble:{ width: 40, height: 40, borderRadius: 99, alignItems: "center", justifyContent: "center" },
-  potName:       { fontSize: 15, fontWeight: "700", color: "#0D0D1A" },
-  potDeadlineText:{ fontSize: 11, color: "#A0A0B8", marginTop: 1 },
+  potName:       { fontSize: 15, fontWeight: "700", color: "#264653" },
+  potDeadlineText:{ fontSize: 11, color: "#7A9AAB", marginTop: 1 },
   potAmount:     { fontSize: 16, fontWeight: "900" },
-  potTrack:      { backgroundColor: "#EEEEF5", borderRadius: 99, height: 8 },
+  potTrack:      { backgroundColor: "#E0EDF2", borderRadius: 99, height: 8 },
   potFill:       { height: 8, borderRadius: 99 },
-  potProgress:   { fontSize: 11, color: "#A0A0B8" },
+  potProgress:   { fontSize: 11, color: "#7A9AAB" },
   potAddBtn:     { fontSize: 11, fontWeight: "700" },
 
-  newPotBtn:    { backgroundColor: "#6C47FF1F", borderRadius: 16, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 },
-  newPotBtnText:{ fontSize: 14, fontWeight: "700", color: "#6C47FF" },
+  newPotBtn:    { backgroundColor: "#0ABDE31F", borderRadius: 16, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 },
+  newPotBtnText:{ fontSize: 14, fontWeight: "700", color: "#0ABDE3" },
 
   // ── Transactions ──
-  txCard:    { backgroundColor: "#fff", borderRadius: 20, padding: 14, marginBottom: 12, shadowColor: "#6C47FF", shadowOpacity: 0.05, elevation: 2 },
+  txCard:    { backgroundColor: "#fff", borderRadius: 20, padding: 14, marginBottom: 12, shadowColor: "#0ABDE3", shadowOpacity: 0.05, elevation: 2 },
   txRow:     { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6 },
   txIcon:    { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  txLabel:   { fontSize: 14, fontWeight: "600", color: "#0D0D1A" },
-  txCategory:{ fontSize: 11, color: "#A0A0B8", marginTop: 1 },
+  txLabel:   { fontSize: 14, fontWeight: "600", color: "#264653" },
+  txCategory:{ fontSize: 11, color: "#7A9AAB", marginTop: 1 },
   txAmount:  { fontSize: 15, fontWeight: "800" },
-  separator: { height: 0.5, backgroundColor: "#F0F0F8", marginVertical: 4 },
-  empty:     { textAlign: "center", color: "#A0A0B8", fontSize: 14, marginTop: 4, marginBottom: 16 },
+  separator: { height: 0.5, backgroundColor: "#EDE4D9", marginVertical: 4 },
+  empty:     { textAlign: "center", color: "#7A9AAB", fontSize: 14, marginTop: 4, marginBottom: 16 },
 
   // ── Subscriptions ──
-  subSummaryCard:   { backgroundColor: "#6C47FF", borderRadius: 20, padding: 20, alignItems: "center", marginBottom: 12 },
+  subSummaryCard:   { backgroundColor: "#0ABDE3", borderRadius: 20, padding: 20, alignItems: "center", marginBottom: 12 },
   subSummaryAmount: { fontSize: 32, fontWeight: "900", color: "#fff" },
   subSummaryAnnual: { fontSize: 13, color: "#FFFFFF99", marginTop: 2 },
-  cutBtn:           { borderRadius: 14, borderWidth: 1.5, borderColor: "#6C47FF", padding: 12, alignItems: "center", marginBottom: 12 },
-  cutBtnText:       { fontSize: 14, fontWeight: "700", color: "#6C47FF" },
+  cutBtn:           { borderRadius: 14, borderWidth: 1.5, borderColor: "#0ABDE3", padding: 12, alignItems: "center", marginBottom: 12 },
+  cutBtnText:       { fontSize: 14, fontWeight: "700", color: "#0ABDE3" },
   subRow:           { backgroundColor: "#fff", borderRadius: 16, padding: 14, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 },
-  subEmojiBox:      { width: 44, height: 44, borderRadius: 12, backgroundColor: "#F7F7FA", alignItems: "center", justifyContent: "center" },
-  subName:          { fontSize: 15, fontWeight: "700", color: "#0D0D1A" },
-  subMeta:          { fontSize: 11, color: "#A0A0B8", marginTop: 2 },
-  subAmount:        { fontSize: 14, fontWeight: "800", color: "#0D0D1A" },
+  subEmojiBox:      { width: 44, height: 44, borderRadius: 12, backgroundColor: "#FFF8F0", alignItems: "center", justifyContent: "center" },
+  subName:          { fontSize: 15, fontWeight: "700", color: "#264653" },
+  subMeta:          { fontSize: 11, color: "#7A9AAB", marginTop: 2 },
+  subAmount:        { fontSize: 14, fontWeight: "800", color: "#264653" },
   subBadge:         { borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
   subBadgeText:     { fontSize: 10, fontWeight: "700" },
 
   // ── Wishlist ──
   wishHeader:       { marginTop: 8, marginBottom: 12 },
-  wishTitle:        { fontSize: 18, fontWeight: "900", color: "#0D0D1A" },
-  wishSavings:      { fontSize: 12, color: "#00C896", fontWeight: "600", marginTop: 2 },
-  wishCard:         { backgroundColor: "#fff", borderRadius: 16, padding: 14, marginBottom: 10, shadowColor: "#6C47FF", shadowOpacity: 0.05, elevation: 2 },
-  wishItemName:     { fontSize: 15, fontWeight: "700", color: "#0D0D1A" },
-  wishItemAmount:   { fontSize: 13, fontWeight: "600", color: "#6B6B85", marginTop: 1 },
-  wishUnlockedBadge:{ backgroundColor: "#00C8961F", borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
-  wishUnlockedText: { fontSize: 11, fontWeight: "700", color: "#00C896" },
+  wishTitle:        { fontSize: 18, fontWeight: "900", color: "#264653" },
+  wishSavings:      { fontSize: 12, color: "#2DC653", fontWeight: "600", marginTop: 2 },
+  wishCard:         { backgroundColor: "#fff", borderRadius: 16, padding: 14, marginBottom: 10, shadowColor: "#0ABDE3", shadowOpacity: 0.05, elevation: 2 },
+  wishItemName:     { fontSize: 15, fontWeight: "700", color: "#264653" },
+  wishItemAmount:   { fontSize: 13, fontWeight: "600", color: "#4A7080", marginTop: 1 },
+  wishUnlockedBadge:{ backgroundColor: "#2DC6531F", borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
+  wishUnlockedText: { fontSize: 11, fontWeight: "700", color: "#2DC653" },
   wishDaysLeft:     { fontSize: 13, fontWeight: "800" },
-  wishTrack:        { backgroundColor: "#EEEEF5", borderRadius: 99, height: 8, marginTop: 4 },
+  wishTrack:        { backgroundColor: "#E0EDF2", borderRadius: 99, height: 8, marginTop: 4 },
   wishFill:         { height: 8, borderRadius: 99 },
   wishActions:      { flexDirection: "row", gap: 8, marginTop: 10 },
   wishActionBtn:    { flex: 1, borderRadius: 12, padding: 10, alignItems: "center" },
@@ -977,32 +978,32 @@ const st = StyleSheet.create({
 
   // ── Emoji / color pickers ──
   emojiGrid:      { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
-  emojiItem:      { width: 44, height: 44, borderRadius: 12, backgroundColor: "#F7F7FA", alignItems: "center", justifyContent: "center" },
-  emojiItemActive:{ borderWidth: 2, borderColor: "#6C47FF", backgroundColor: "#6C47FF1F" },
+  emojiItem:      { width: 44, height: 44, borderRadius: 12, backgroundColor: "#FFF8F0", alignItems: "center", justifyContent: "center" },
+  emojiItemActive:{ borderWidth: 2, borderColor: "#0ABDE3", backgroundColor: "#0ABDE31F" },
   colorRow:       { flexDirection: "row", gap: 12, marginBottom: 14 },
   colorDot:       { width: 32, height: 32, borderRadius: 99 },
-  colorDotActive: { borderWidth: 3, borderColor: "#0D0D1A" },
+  colorDotActive: { borderWidth: 3, borderColor: "#264653" },
 
   // ── Cooloff hint ──
-  cooloffHintBox: { backgroundColor: "#6C47FF1F", borderRadius: 12, padding: 12, marginBottom: 14 },
-  cooloffHintText:{ fontSize: 13, color: "#6C47FF", textAlign: "center" },
+  cooloffHintBox: { backgroundColor: "#0ABDE31F", borderRadius: 12, padding: 12, marginBottom: 14 },
+  cooloffHintText:{ fontSize: 13, color: "#0ABDE3", textAlign: "center" },
 
   // ── Sheets ──
   overlay:        { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(13,13,26,0.35)" },
   sheet:          { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 16, elevation: 20, maxHeight: "90%" },
-  sheetTitle:     { fontSize: 17, fontWeight: "800", color: "#0D0D1A", textAlign: "center", marginBottom: 16 },
+  sheetTitle:     { fontSize: 17, fontWeight: "800", color: "#264653", textAlign: "center", marginBottom: 16 },
   typePills:      { flexDirection: "row", gap: 8, marginBottom: 16 },
-  typePill:       { flex: 1, backgroundColor: "#EEEEF5", borderRadius: 99, paddingVertical: 10, alignItems: "center" },
-  typePillText:   { fontSize: 14, fontWeight: "500", color: "#6B6B85" },
-  amountInput:    { fontSize: 32, fontWeight: "900", textAlign: "center", backgroundColor: "#F7F7FA", borderRadius: 14, padding: 16, marginBottom: 12 },
-  sheetInput:     { backgroundColor: "#F7F7FA", borderRadius: 14, padding: 14, fontSize: 15, color: "#0D0D1A", marginBottom: 14 },
-  sheetLabel:     { fontSize: 12, fontWeight: "700", color: "#A0A0B8", letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 12 },
+  typePill:       { flex: 1, backgroundColor: "#E0EDF2", borderRadius: 99, paddingVertical: 10, alignItems: "center" },
+  typePillText:   { fontSize: 14, fontWeight: "500", color: "#4A7080" },
+  amountInput:    { fontSize: 32, fontWeight: "900", textAlign: "center", backgroundColor: "#FFF8F0", borderRadius: 14, padding: 16, marginBottom: 12 },
+  sheetInput:     { backgroundColor: "#FFF8F0", borderRadius: 14, padding: 14, fontSize: 15, color: "#264653", marginBottom: 14 },
+  sheetLabel:     { fontSize: 12, fontWeight: "700", color: "#7A9AAB", letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 12 },
   catGrid:        { flexDirection: "row", flexWrap: "wrap", marginBottom: 16, gap: 8 },
   catItem:        { width: "18%", alignItems: "center", borderRadius: 12, padding: 6, gap: 4 },
   catCircle:      { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  catLabel:       { fontSize: 9, color: "#6B6B85", textAlign: "center", fontWeight: "500" },
+  catLabel:       { fontSize: 9, color: "#4A7080", textAlign: "center", fontWeight: "500" },
   sheetConfirm:   { borderRadius: 14, padding: 15, alignItems: "center", marginBottom: 4 },
   sheetConfirmText:{ color: "#fff", fontWeight: "700", fontSize: 15 },
   cancelBtn:      { alignItems: "center", marginTop: 10, marginBottom: 8 },
-  cancelText:     { color: "#A0A0B8", fontSize: 14 },
+  cancelText:     { color: "#7A9AAB", fontSize: 14 },
 });

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Plus } from 'lucide-react-native'
 import {
   Alert,
   Animated,
@@ -194,9 +195,9 @@ function ActiveExerciseCard({
               value={s.weight}
               onChangeText={v => updateSet(idx, 'weight', v)}
               placeholder="kg"
-              placeholderTextColor="#A0A0B8"
+              placeholderTextColor="#7A9AAB"
               keyboardType="decimal-pad"
-              selectionColor="#FF9500"
+              selectionColor="#FF9F1C"
               editable={!s.done}
             />
             <Text style={st.setSep}>×</Text>
@@ -205,9 +206,9 @@ function ActiveExerciseCard({
               value={s.reps}
               onChangeText={v => updateSet(idx, 'reps', v)}
               placeholder="reps"
-              placeholderTextColor="#A0A0B8"
+              placeholderTextColor="#7A9AAB"
               keyboardType="number-pad"
-              selectionColor="#FF9500"
+              selectionColor="#FF9F1C"
               editable={!s.done}
             />
             <TouchableOpacity
@@ -284,8 +285,8 @@ function ExerciceItem({ ex, isLast }: { ex: PlannedExercise; isLast: boolean }) 
 
 function HistoryCard({ item }: { item: HistoryItem }) {
   const d = format(new Date(item.date + 'T00:00:00'), 'd MMM', { locale: fr })
-  const typeBg    = item.type === 'emom' ? '#FF5C5C1F' : '#FF95001F'
-  const typeText  = item.type === 'emom' ? '#CC2222'   : '#B36800'
+  const typeBg    = item.type === 'emom' ? '#FF7B541F' : '#FF9F1C1F'
+  const typeText  = item.type === 'emom' ? '#D94520'   : '#A07000'
   const typeLabel = item.type === 'emom' ? 'EMOM' : 'Classique'
 
   return (
@@ -298,8 +299,8 @@ function HistoryCard({ item }: { item: HistoryItem }) {
         <View style={[st.histBadge, { backgroundColor: typeBg }]}>
           <Text style={[st.histBadgeText, { color: typeText }]}>{typeLabel}</Text>
         </View>
-        <View style={[st.histBadge, { backgroundColor: '#00C8961F' }]}>
-          <Text style={[st.histBadgeText, { color: '#00A87A' }]}>Terminé</Text>
+        <View style={[st.histBadge, { backgroundColor: '#2DC6531F' }]}>
+          <Text style={[st.histBadgeText, { color: '#1A9A50' }]}>Terminé</Text>
         </View>
       </View>
     </View>
@@ -450,7 +451,7 @@ export default function WorkoutScreen() {
           <View style={st.header}>
             <Text style={st.headerTitle}>Workout</Text>
             <TouchableOpacity style={st.addBtn} onPress={() => setShowSheet(true)} activeOpacity={0.85}>
-              <Text style={st.addBtnText}>+</Text>
+              <Plus size={22} color="#fff" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
 
@@ -544,8 +545,8 @@ export default function WorkoutScreen() {
                     <Text style={st.exName}>{nextEmomEx.name}</Text>
                     <Text style={st.exDetail}>{nextEmomEx.reps} reps</Text>
                   </View>
-                  <View style={[st.histBadge, { backgroundColor: '#00C8961F' }]}>
-                    <Text style={[st.histBadgeText, { color: '#00A87A' }]}>Prochain</Text>
+                  <View style={[st.histBadge, { backgroundColor: '#2DC6531F' }]}>
+                    <Text style={[st.histBadgeText, { color: '#1A9A50' }]}>Prochain</Text>
                   </View>
                 </View>
               </View>
@@ -558,7 +559,7 @@ export default function WorkoutScreen() {
             <SwipeableRow
               key={item.id}
               rightActions={[{
-                label: 'Supprimer', emoji: '🗑️', color: '#FF5C5C',
+                label: 'Supprimer', emoji: '🗑️', color: '#FF7B54',
                 onPress: () => Alert.alert(
                   'Supprimer la séance', 'Cette action est irréversible.',
                   [
@@ -624,11 +625,11 @@ export default function WorkoutScreen() {
                 <TextInput
                   style={st.sheetInput}
                   placeholder="Nom de la séance…"
-                  placeholderTextColor="#A0A0B8"
+                  placeholderTextColor="#7A9AAB"
                   value={sName}
                   onChangeText={setSName}
                   autoFocus
-                  selectionColor="#FF9500"
+                  selectionColor="#FF9F1C"
                 />
 
                 <Text style={st.sheetLabel}>Type</Text>
@@ -653,11 +654,11 @@ export default function WorkoutScreen() {
                     <TextInput
                       style={st.sheetInput}
                       placeholder="12"
-                      placeholderTextColor="#A0A0B8"
+                      placeholderTextColor="#7A9AAB"
                       value={sDuration}
                       onChangeText={setSDuration}
                       keyboardType="number-pad"
-                      selectionColor="#FF9500"
+                      selectionColor="#FF9F1C"
                     />
                   </>
                 )}
@@ -667,10 +668,10 @@ export default function WorkoutScreen() {
                     <Text style={st.sheetLabel}>Exercices</Text>
                     {sExercises.map((ex, i) => (
                       <View key={i} style={st.sheetExItem}>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#0D0D1A', flex: 1 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#264653', flex: 1 }}>
                           {ex.name}
                         </Text>
-                        <Text style={{ fontSize: 12, color: '#6B6B85' }}>
+                        <Text style={{ fontSize: 12, color: '#4A7080' }}>
                           {sType === 'classic'
                             ? `${ex.sets}×${ex.reps}${ex.weight ? ` · ${ex.weight}kg` : ''}`
                             : `× ${ex.reps}`}
@@ -685,11 +686,11 @@ export default function WorkoutScreen() {
                     <TextInput
                       style={st.sheetInput}
                       placeholder="Nom de l'exercice…"
-                      placeholderTextColor="#A0A0B8"
+                      placeholderTextColor="#7A9AAB"
                       value={exName}
                       onChangeText={setExName}
                       autoFocus
-                      selectionColor="#FF9500"
+                      selectionColor="#FF9F1C"
                     />
                     {sType === 'classic' && (
                       <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -728,25 +729,25 @@ export default function WorkoutScreen() {
                       <TextInput
                         style={[st.sheetInput, { marginTop: 0 }]}
                         placeholder="Poids (optionnel, kg)"
-                        placeholderTextColor="#A0A0B8"
+                        placeholderTextColor="#7A9AAB"
                         value={exWeight}
                         onChangeText={setExWeight}
                         keyboardType="decimal-pad"
-                        selectionColor="#FF9500"
+                        selectionColor="#FF9F1C"
                       />
                     )}
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <TouchableOpacity
-                        style={[st.sheetConfirm, { flex: 1, backgroundColor: '#FF9500' }]}
+                        style={[st.sheetConfirm, { flex: 1, backgroundColor: '#FF9F1C' }]}
                         onPress={handleAddExercise}
                       >
                         <Text style={st.sheetConfirmText}>Confirmer</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[st.sheetConfirm, { flex: 1, backgroundColor: '#EEEEF5' }]}
+                        style={[st.sheetConfirm, { flex: 1, backgroundColor: '#E0EDF2' }]}
                         onPress={() => setShowAddEx(false)}
                       >
-                        <Text style={[st.sheetConfirmText, { color: '#6B6B85' }]}>Annuler</Text>
+                        <Text style={[st.sheetConfirmText, { color: '#4A7080' }]}>Annuler</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -765,7 +766,7 @@ export default function WorkoutScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={handleCloseSheet} style={{ alignItems: 'center', marginTop: 10, marginBottom: 8 }}>
-                  <Text style={{ color: '#A0A0B8', fontSize: 14 }}>Annuler</Text>
+                  <Text style={{ color: '#7A9AAB', fontSize: 14 }}>Annuler</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -780,7 +781,7 @@ export default function WorkoutScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: '#F7F7FA' },
+  safe:   { flex: 1, backgroundColor: '#FFF8F0' },
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
 
   // Header
@@ -788,25 +789,25 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: 16, marginBottom: 16,
   },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#0D0D1A', letterSpacing: -0.5 },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#FF9F1C', letterSpacing: -0.5 },
   addBtn: {
-    width: 40, height: 40, borderRadius: 99, backgroundColor: '#FF9500',
+    width: 40, height: 40, borderRadius: 99, backgroundColor: '#FF9F1C',
     alignItems: 'center', justifyContent: 'center',
   },
   addBtnText: { color: '#fff', fontSize: 24, lineHeight: 26, fontWeight: '400' },
 
   // Tabs
   tabs:          { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  tabPill:       { borderRadius: 99, paddingHorizontal: 20, paddingVertical: 8, backgroundColor: '#EEEEF5' },
-  tabPillActive: { backgroundColor: '#FF9500' },
-  tabText:       { fontSize: 14, fontWeight: '500', color: '#6B6B85' },
+  tabPill:       { borderRadius: 99, paddingHorizontal: 20, paddingVertical: 8, backgroundColor: '#E0EDF2' },
+  tabPillActive: { backgroundColor: '#FF9F1C' },
+  tabText:       { fontSize: 14, fontWeight: '500', color: '#4A7080' },
   tabTextActive: { color: '#fff', fontWeight: '700' },
 
   // Active session card
   activeCard: {
-    backgroundColor: '#FF9500', borderRadius: 24, padding: 20, marginBottom: 16,
+    backgroundColor: '#FF9F1C', borderRadius: 24, padding: 20, marginBottom: 16,
   },
-  activeCardRunning: { backgroundColor: '#00A87A' },
+  activeCardRunning: { backgroundColor: '#1A9A50' },
   activeTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   activeSub:   { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 14 },
   startBtn: {
@@ -823,78 +824,78 @@ const st = StyleSheet.create({
   // Exercise card (non-active)
   exCard: {
     backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 12,
-    borderLeftWidth: 4, borderLeftColor: '#FF9500',
-    shadowColor: '#FF9500', shadowOffset: { width: 0, height: 2 },
+    borderLeftWidth: 4, borderLeftColor: '#FF9F1C',
+    shadowColor: '#FF9F1C', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   exRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
   exIcon:  {
-    width: 38, height: 38, borderRadius: 19, backgroundColor: '#FF95001F',
+    width: 38, height: 38, borderRadius: 19, backgroundColor: '#FF9F1C1F',
     alignItems: 'center', justifyContent: 'center',
   },
-  exName:          { fontSize: 14, fontWeight: '700', color: '#0D0D1A' },
-  exDetail:        { fontSize: 12, color: '#6B6B85', marginTop: 2 },
-  weightBadge:     { backgroundColor: '#FF95001F', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
-  weightBadgeText: { fontSize: 10, fontWeight: '700', color: '#B36800' },
-  separator:       { height: 0.5, backgroundColor: '#F0F0F8', marginVertical: 6 },
+  exName:          { fontSize: 14, fontWeight: '700', color: '#264653' },
+  exDetail:        { fontSize: 12, color: '#4A7080', marginTop: 2 },
+  weightBadge:     { backgroundColor: '#FF9F1C1F', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
+  weightBadgeText: { fontSize: 10, fontWeight: '700', color: '#A07000' },
+  separator:       { height: 0.5, backgroundColor: '#EDE4D9', marginVertical: 6 },
 
   // Active exercise card
   activeExCard: {
     backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 12,
-    borderLeftWidth: 4, borderLeftColor: '#00A87A',
-    shadowColor: '#00A87A', shadowOffset: { width: 0, height: 2 },
+    borderLeftWidth: 4, borderLeftColor: '#1A9A50',
+    shadowColor: '#1A9A50', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08, shadowRadius: 8, elevation: 2,
   },
 
   // Last performance
   lastPerfCard: {
-    backgroundColor: '#FF95001F', borderRadius: 12, padding: 10,
+    backgroundColor: '#FF9F1C1F', borderRadius: 12, padding: 10,
     flexDirection: 'row', alignItems: 'center',
     gap: 8, marginBottom: 10,
   },
-  lastPerfText: { fontSize: 12, color: '#B36800', fontWeight: '600', flex: 1 },
+  lastPerfText: { fontSize: 12, color: '#A07000', fontWeight: '600', flex: 1 },
   firstTimeText: {
-    fontSize: 12, color: '#A0A0B8', fontStyle: 'italic',
+    fontSize: 12, color: '#7A9AAB', fontStyle: 'italic',
     marginBottom: 10, paddingLeft: 4,
   },
 
   // Set rows
   setBlock: {
-    backgroundColor: '#F7F7FA', borderRadius: 12, padding: 10,
+    backgroundColor: '#FFF8F0', borderRadius: 12, padding: 10,
     marginBottom: 6,
   },
-  setBlockDone: { backgroundColor: '#00C8961A' },
+  setBlockDone: { backgroundColor: '#2DC6531A' },
   setRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  setLabel: { fontSize: 11, fontWeight: '700', color: '#A0A0B8', width: 24 },
+  setLabel: { fontSize: 11, fontWeight: '700', color: '#7A9AAB', width: 24 },
   weightInput: {
     backgroundColor: '#fff', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10,
-    fontSize: 14, fontWeight: '600', color: '#0D0D1A', width: 70,
-    borderWidth: 1, borderColor: '#EEEEF5',
+    fontSize: 14, fontWeight: '600', color: '#264653', width: 70,
+    borderWidth: 1, borderColor: '#E0EDF2',
     textAlign: 'center',
   },
   repsInput: {
     backgroundColor: '#fff', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10,
-    fontSize: 14, fontWeight: '600', color: '#0D0D1A', width: 60,
-    borderWidth: 1, borderColor: '#EEEEF5',
+    fontSize: 14, fontWeight: '600', color: '#264653', width: 60,
+    borderWidth: 1, borderColor: '#E0EDF2',
     textAlign: 'center',
   },
-  setSep: { fontSize: 16, fontWeight: '700', color: '#A0A0B8' },
+  setSep: { fontSize: 16, fontWeight: '700', color: '#7A9AAB' },
   confirmSetBtn: {
-    marginLeft: 'auto', backgroundColor: '#FF9500', borderRadius: 10,
+    marginLeft: 'auto', backgroundColor: '#FF9F1C', borderRadius: 10,
     width: 38, height: 38, alignItems: 'center', justifyContent: 'center',
   },
-  confirmSetBtnDone: { backgroundColor: '#00A87A' },
+  confirmSetBtnDone: { backgroundColor: '#1A9A50' },
   confirmSetBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
 
   // RPE
-  rpeLabel: { fontSize: 10, fontWeight: '700', color: '#A0A0B8', letterSpacing: 0.5, marginTop: 8, marginBottom: 4, marginLeft: 2 },
+  rpeLabel: { fontSize: 10, fontWeight: '700', color: '#7A9AAB', letterSpacing: 0.5, marginTop: 8, marginBottom: 4, marginLeft: 2 },
   rpePillRow: { flexGrow: 0, marginBottom: 2 },
   rpePill: {
     borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
-    backgroundColor: '#EEEEF5', marginRight: 4,
+    backgroundColor: '#E0EDF2', marginRight: 4,
   },
-  rpePillActive:     { backgroundColor: '#FF9500' },
-  rpePillText:       { fontSize: 11, fontWeight: '600', color: '#6B6B85' },
+  rpePillActive:     { backgroundColor: '#FF9F1C' },
+  rpePillText:       { fontSize: 11, fontWeight: '600', color: '#4A7080' },
   rpePillTextActive: { fontSize: 11, fontWeight: '700', color: '#fff' },
   rpeDoneRow: { flexDirection: 'row', marginTop: 6 },
 
@@ -904,24 +905,24 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     gap: 10, marginTop: 8,
   },
-  prTitle: { fontSize: 16, fontWeight: '900', color: '#0D0D1A' },
-  prSub:   { fontSize: 12, color: '#6B6B85', marginTop: 2 },
-  prE1rm:  { fontSize: 11, color: '#6B6B85', marginTop: 2 },
+  prTitle: { fontSize: 16, fontWeight: '900', color: '#264653' },
+  prSub:   { fontSize: 12, color: '#4A7080', marginTop: 2 },
+  prE1rm:  { fontSize: 11, color: '#4A7080', marginTop: 2 },
 
   // History
   histCard: {
     backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 8,
     flexDirection: 'row', alignItems: 'center',
-    shadowColor: '#6C47FF', shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#FF9F1C', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
   },
-  histName:      { fontSize: 13, fontWeight: '700', color: '#0D0D1A', marginBottom: 2 },
-  histMeta:      { fontSize: 11, color: '#A0A0B8' },
+  histName:      { fontSize: 13, fontWeight: '700', color: '#264653', marginBottom: 2 },
+  histMeta:      { fontSize: 11, color: '#7A9AAB' },
   histBadge:     { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
   histBadgeText: { fontSize: 10, fontWeight: '700' },
 
   // EMOM timer card
-  timerCard: { backgroundColor: '#FF9500', borderRadius: 24, padding: 24, marginBottom: 12 },
+  timerCard: { backgroundColor: '#FF9F1C', borderRadius: 24, padding: 24, marginBottom: 12 },
   timerLabel:    { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.8, marginBottom: 8 },
   timerClock:    { fontSize: 56, fontWeight: '900', color: '#fff', lineHeight: 60, marginBottom: 6 },
   timerExercise: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 14 },
@@ -945,48 +946,48 @@ const st = StyleSheet.create({
     shadowOpacity: 0.15, shadowRadius: 16, elevation: 20,
     maxHeight: '85%',
   },
-  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#0D0D1A', textAlign: 'center', marginBottom: 16 },
+  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#264653', textAlign: 'center', marginBottom: 16 },
   sheetInput: {
-    backgroundColor: '#F7F7FA', borderRadius: 14, padding: 14,
-    fontSize: 15, color: '#0D0D1A', marginBottom: 12,
+    backgroundColor: '#FFF8F0', borderRadius: 14, padding: 14,
+    fontSize: 15, color: '#264653', marginBottom: 12,
   },
   sheetLabel: {
-    fontSize: 12, fontWeight: '700', color: '#A0A0B8',
+    fontSize: 12, fontWeight: '700', color: '#7A9AAB',
     letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
   },
   sheetTypePills:      { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  sheetTypePill:       { flex: 1, borderRadius: 99, paddingVertical: 10, backgroundColor: '#EEEEF5', alignItems: 'center' },
-  sheetTypePillActive: { backgroundColor: '#FF9500' },
-  sheetTypePillText:   { fontSize: 14, fontWeight: '500', color: '#6B6B85' },
+  sheetTypePill:       { flex: 1, borderRadius: 99, paddingVertical: 10, backgroundColor: '#E0EDF2', alignItems: 'center' },
+  sheetTypePillActive: { backgroundColor: '#FF9F1C' },
+  sheetTypePillText:   { fontSize: 14, fontWeight: '500', color: '#4A7080' },
   sheetExItem: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
-    borderBottomWidth: 0.5, borderBottomColor: '#F0F0F8',
+    borderBottomWidth: 0.5, borderBottomColor: '#EDE4D9',
   },
-  sheetAddExForm: { backgroundColor: '#F7F7FA', borderRadius: 14, padding: 12, gap: 10, marginBottom: 12 },
+  sheetAddExForm: { backgroundColor: '#FFF8F0', borderRadius: 14, padding: 12, gap: 10, marginBottom: 12 },
   addExBtn: {
-    borderWidth: 1.5, borderColor: '#FF9500', borderStyle: 'dashed',
+    borderWidth: 1.5, borderColor: '#FF9F1C', borderStyle: 'dashed',
     borderRadius: 14, padding: 12, alignItems: 'center', marginBottom: 12,
   },
-  addExBtnText: { color: '#FF9500', fontWeight: '700', fontSize: 14 },
+  addExBtnText: { color: '#FF9F1C', fontWeight: '700', fontSize: 14 },
   sheetConfirm: {
-    backgroundColor: '#FF9500', borderRadius: 14, padding: 15, alignItems: 'center', marginBottom: 4,
+    backgroundColor: '#FF9F1C', borderRadius: 14, padding: 15, alignItems: 'center', marginBottom: 4,
   },
   sheetConfirmText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   counterRow: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#fff', borderRadius: 10, padding: 8,
   },
-  counterBtn:     { width: 26, height: 26, borderRadius: 13, backgroundColor: '#EEEEF5', alignItems: 'center', justifyContent: 'center' },
-  counterBtnText: { fontSize: 16, color: '#0D0D1A', fontWeight: '600', lineHeight: 18 },
-  counterVal:     { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: '#0D0D1A' },
+  counterBtn:     { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E0EDF2', alignItems: 'center', justifyContent: 'center' },
+  counterBtnText: { fontSize: 16, color: '#264653', fontWeight: '600', lineHeight: 18 },
+  counterVal:     { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: '#264653' },
 
   // Rest timer banner
   restBanner: {
     position: 'absolute', bottom: 80, left: 16, right: 16,
-    backgroundColor: '#FF9500', borderRadius: 20,
+    backgroundColor: '#FF9F1C', borderRadius: 20,
     padding: 16, flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#FF9500', shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
+    shadowColor: '#FF9F1C', shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
   },
   restLabel:     { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '700', textTransform: 'uppercase' },
   restClock:     { fontSize: 36, fontWeight: '900', color: '#fff' },

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -108,7 +108,7 @@ function variantContainer(variant: ButtonVariant, color: string): ViewStyle {
   switch (variant) {
     case 'primary':   return { backgroundColor: color };
     case 'secondary': return { backgroundColor: Colors.bg2, borderWidth: 1, borderColor: Colors.border };
-    case 'outline':   return { backgroundColor: color + '18', borderWidth: 1.5, borderColor: color };
+    case 'outline':   return { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: color };
     case 'ghost':     return { backgroundColor: 'transparent' };
     case 'danger':    return { backgroundColor: Colors.coral + '18', borderWidth: 1.5, borderColor: Colors.coral };
     default:          return {};

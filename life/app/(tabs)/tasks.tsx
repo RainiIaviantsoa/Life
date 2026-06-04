@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react-native'
 import {
   Alert,
   Keyboard,
@@ -25,9 +26,9 @@ import type { Priority, Recurrence, Task } from '@/types'
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const PRIORITY_CFG = {
-  high:   { border: '#FF5C5C', bg: '#FF5C5C1F', text: '#CC2222', label: 'Haute'   },
-  medium: { border: '#FF9500', bg: '#FF95001F', text: '#B36800', label: 'Moyenne' },
-  low:    { border: '#6C47FF', bg: '#6C47FF1F', text: '#4422CC', label: 'Basse'   },
+  high:   { border: '#FF7B54', bg: '#FF7B541F', text: '#D94520', label: 'Haute'   },
+  medium: { border: '#FF9F1C', bg: '#FF9F1C1F', text: '#A07000', label: 'Moyenne' },
+  low:    { border: '#FF7B54', bg: '#FF7B541F', text: '#007A8A', label: 'Basse'   },
 } as const
 
 const RECURRENCE_LABELS: Record<Recurrence, string> = {
@@ -40,14 +41,14 @@ const RECURRENCE_LABELS: Record<Recurrence, string> = {
 const CAL_THEME = {
   backgroundColor:           '#FFFFFF',
   calendarBackground:        '#FFFFFF',
-  textSectionTitleColor:     '#A0A0B8',
-  selectedDayBackgroundColor:'#6C47FF',
+  textSectionTitleColor:     '#7A9AAB',
+  selectedDayBackgroundColor:'#FF7B54',
   selectedDayTextColor:      '#FFFFFF',
-  todayTextColor:            '#6C47FF',
-  dayTextColor:              '#0D0D1A',
-  textDisabledColor:         '#DDDDE8',
-  arrowColor:                '#6C47FF',
-  monthTextColor:            '#0D0D1A',
+  todayTextColor:            '#FF7B54',
+  dayTextColor:              '#264653',
+  textDisabledColor:         '#C5D5DC',
+  arrowColor:                '#FF7B54',
+  monthTextColor:            '#264653',
   textMonthFontWeight:       '800' as any,
   textDayFontWeight:         '600' as any,
   textDayHeaderFontWeight:   '700' as any,
@@ -57,7 +58,7 @@ const CAL_STYLE = {
   borderRadius: 20,
   overflow:     'hidden' as const,
   borderWidth:  0.5,
-  borderColor:  '#DDDDE8',
+  borderColor:  '#C5D5DC',
   marginBottom: 16,
 }
 
@@ -102,8 +103,8 @@ function TaskItem({ task, onToggle, onToggleMIT }: TaskItemProps) {
           {/* Check */}
           <View style={{
             width: 24, height: 24, borderRadius: 99,
-            backgroundColor: task.completed ? '#6C47FF' : 'transparent',
-            borderWidth: task.completed ? 0 : 2, borderColor: '#DDDDE8',
+            backgroundColor: task.completed ? '#FF7B54' : 'transparent',
+            borderWidth: task.completed ? 0 : 2, borderColor: '#C5D5DC',
             alignItems: 'center', justifyContent: 'center',
           }}>
             {task.completed && <Text style={{ color: '#fff', fontSize: 12 }}>✓</Text>}
@@ -112,7 +113,7 @@ function TaskItem({ task, onToggle, onToggleMIT }: TaskItemProps) {
           {/* Titre */}
           <Text style={{
             flex: 1, fontSize: 14, fontWeight: '600',
-            color: task.completed ? '#A0A0B8' : '#0D0D1A',
+            color: task.completed ? '#7A9AAB' : '#264653',
             textDecorationLine: task.completed ? 'line-through' : 'none',
           }}>
             {task.title}
@@ -135,10 +136,10 @@ function TaskItem({ task, onToggle, onToggleMIT }: TaskItemProps) {
         {(task.time || task.recurrence !== 'none' || !!task.parentId) && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginLeft: 34 }}>
             {task.time && (
-              <Text style={{ fontSize: 11, color: '#6C47FF', fontWeight: '600' }}>🕐 {task.time}</Text>
+              <Text style={{ fontSize: 11, color: '#FF7B54', fontWeight: '600' }}>🕐 {task.time}</Text>
             )}
             {(task.recurrence !== 'none' || !!task.parentId) && (
-              <Text style={{ fontSize: 11, color: '#A0A0B8' }}>
+              <Text style={{ fontSize: 11, color: '#7A9AAB' }}>
                 {task.recurrence !== 'none'
                   ? `🔁 ${RECURRENCE_LABELS[task.recurrence]}`
                   : '🔁'}
@@ -214,8 +215,8 @@ export default function TasksScreen() {
     const marks: Record<string, any> = {}
     tasks.forEach(t => {
       const color =
-        t.priority === 'high'   ? '#FF5C5C' :
-        t.priority === 'medium' ? '#FF9500' : '#6C47FF'
+        t.priority === 'high'   ? '#FF7B54' :
+        t.priority === 'medium' ? '#FF9F1C' : '#FF7B54'
       if (!marks[t.date]) {
         marks[t.date] = { dots: [], selected: t.date === selectedDate }
       }
@@ -227,7 +228,7 @@ export default function TasksScreen() {
       marks[selectedDate] = {
         ...(marks[selectedDate] ?? {}),
         selected:      true,
-        selectedColor: '#6C47FF',
+        selectedColor: '#FF7B54',
       }
     }
     return marks
@@ -300,7 +301,7 @@ export default function TasksScreen() {
         {
           label: 'Reporter',
           emoji: '📅',
-          color: '#FF9500',
+          color: '#FF9F1C',
           onPress: () => handlePostpone(task),
         },
       ]}
@@ -308,7 +309,7 @@ export default function TasksScreen() {
         {
           label: 'Supprimer',
           emoji: '🗑️',
-          color: '#FF5C5C',
+          color: '#FF7B54',
           onPress: () => handleDeleteTask(task),
         },
       ]}
@@ -334,7 +335,7 @@ export default function TasksScreen() {
           <View style={st.header}>
             <Text style={st.headerTitle}>Tâches</Text>
             <TouchableOpacity style={st.addBtn} onPress={() => setShowSheet(true)} activeOpacity={0.85}>
-              <Text style={st.addBtnText}>+</Text>
+              <Plus size={22} color="#fff" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
 
@@ -412,12 +413,12 @@ export default function TasksScreen() {
                 <TextInput
                   style={st.input}
                   placeholder="Titre de la tâche…"
-                  placeholderTextColor="#A0A0B8"
+                  placeholderTextColor="#7A9AAB"
                   value={form.title}
                   onChangeText={v => setForm(f => ({ ...f, title: v }))}
                   autoFocus
                   returnKeyType="done"
-                  selectionColor="#6C47FF"
+                  selectionColor="#FF7B54"
                 />
 
                 {/* Sélecteur date */}
@@ -455,7 +456,7 @@ export default function TasksScreen() {
                   <Calendar
                     theme={CAL_THEME}
                     style={{ ...CAL_STYLE, marginBottom: 12 }}
-                    markedDates={{ [form.date]: { selected: true, selectedColor: '#6C47FF' } }}
+                    markedDates={{ [form.date]: { selected: true, selectedColor: '#FF7B54' } }}
                     onDayPress={day => { setForm(f => ({ ...f, date: day.dateString })); setShowDatePicker(false) }}
                   />
                 )}
@@ -465,11 +466,11 @@ export default function TasksScreen() {
                 <TextInput
                   style={st.input}
                   placeholder="ex : 14:30"
-                  placeholderTextColor="#A0A0B8"
+                  placeholderTextColor="#7A9AAB"
                   value={form.time}
                   onChangeText={v => setForm(f => ({ ...f, time: v }))}
                   keyboardType="numbers-and-punctuation"
-                  selectionColor="#6C47FF"
+                  selectionColor="#FF7B54"
                 />
 
                 {/* Priorité */}
@@ -480,11 +481,11 @@ export default function TasksScreen() {
                     return (
                       <TouchableOpacity
                         key={p}
-                        style={[st.pill, { backgroundColor: active ? cfg.bg : '#EEEEF5' }]}
+                        style={[st.pill, { backgroundColor: active ? cfg.bg : '#E0EDF2' }]}
                         onPress={() => setForm(f => ({ ...f, priority: p }))}
                         activeOpacity={0.8}
                       >
-                        <Text style={[st.pillText, { color: active ? cfg.text : '#6B6B85', fontWeight: active ? '700' : '500' }]}>
+                        <Text style={[st.pillText, { color: active ? cfg.text : '#4A7080', fontWeight: active ? '700' : '500' }]}>
                           {cfg.label}
                         </Text>
                       </TouchableOpacity>
@@ -500,11 +501,11 @@ export default function TasksScreen() {
                     return (
                       <TouchableOpacity
                         key={r}
-                        style={[st.pill, { backgroundColor: active ? '#6C47FF1F' : '#EEEEF5', minWidth: 70 }]}
+                        style={[st.pill, { backgroundColor: active ? '#FF7B541F' : '#E0EDF2', minWidth: 70 }]}
                         onPress={() => setForm(f => ({ ...f, recurrence: r }))}
                         activeOpacity={0.8}
                       >
-                        <Text style={[st.pillText, { color: active ? '#4422CC' : '#6B6B85', fontWeight: active ? '700' : '500' }]}>
+                        <Text style={[st.pillText, { color: active ? '#007A8A' : '#4A7080', fontWeight: active ? '700' : '500' }]}>
                           {RECURRENCE_LABELS[r]}
                         </Text>
                       </TouchableOpacity>
@@ -523,7 +524,7 @@ export default function TasksScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={handleCancel} style={{ alignItems: 'center', marginTop: 10, marginBottom: 8 }}>
-                  <Text style={{ color: '#A0A0B8', fontSize: 14 }}>Annuler</Text>
+                  <Text style={{ color: '#7A9AAB', fontSize: 14 }}>Annuler</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -537,31 +538,31 @@ export default function TasksScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: '#F7F7FA' },
+  safe:   { flex: 1, backgroundColor: '#FFF8F0' },
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: 16, marginBottom: 16,
   },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#0D0D1A', letterSpacing: -0.5 },
-  addBtn:    { width: 40, height: 40, borderRadius: 99, backgroundColor: '#6C47FF', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#FF7B54', letterSpacing: -0.5 },
+  addBtn:    { width: 40, height: 40, borderRadius: 99, backgroundColor: '#FF7B54', alignItems: 'center', justifyContent: 'center' },
   addBtnText:{ color: '#fff', fontSize: 24, lineHeight: 26, fontWeight: '400' },
 
   tabs:         { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  tabPill:      { borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#EEEEF5' },
-  tabPillActive:{ backgroundColor: '#6C47FF' },
-  tabText:      { fontSize: 13, fontWeight: '500', color: '#6B6B85' },
+  tabPill:      { borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#E0EDF2' },
+  tabPillActive:{ backgroundColor: '#FF7B54' },
+  tabText:      { fontSize: 13, fontWeight: '500', color: '#4A7080' },
   tabTextActive:{ color: '#fff', fontWeight: '700' },
 
-  empty:      { textAlign: 'center', color: '#A0A0B8', fontSize: 14, marginTop: 40 },
-  groupHeader:{ fontSize: 12, fontWeight: '700', color: '#6B6B85', textTransform: 'capitalize', marginTop: 16, marginBottom: 6 },
-  calDateLabel:{ fontSize: 14, fontWeight: '700', color: '#0D0D1A', marginBottom: 10, textTransform: 'capitalize' },
+  empty:      { textAlign: 'center', color: '#7A9AAB', fontSize: 14, marginTop: 40 },
+  groupHeader:{ fontSize: 12, fontWeight: '700', color: '#4A7080', textTransform: 'capitalize', marginTop: 16, marginBottom: 6 },
+  calDateLabel:{ fontSize: 14, fontWeight: '700', color: '#264653', marginBottom: 10, textTransform: 'capitalize' },
 
   taskCard: {
     backgroundColor: '#FFFFFF', borderRadius: 20, padding: 14, marginBottom: 8,
     borderLeftWidth: 4,
-    shadowColor: '#6C47FF', shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#FF7B54', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,26,0.35)' },
@@ -572,27 +573,27 @@ const st = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15, shadowRadius: 16, elevation: 20,
   },
-  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#0D0D1A', textAlign: 'center', marginBottom: 16 },
+  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#264653', textAlign: 'center', marginBottom: 16 },
   input: {
-    backgroundColor: '#F7F7FA', borderRadius: 14, padding: 14,
-    fontSize: 15, color: '#0D0D1A', marginBottom: 14,
+    backgroundColor: '#FFF8F0', borderRadius: 14, padding: 14,
+    fontSize: 15, color: '#264653', marginBottom: 14,
   },
   fieldLabel: {
-    fontSize: 12, fontWeight: '700', color: '#A0A0B8',
+    fontSize: 12, fontWeight: '700', color: '#7A9AAB',
     letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
   },
   shortcutRow: { flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
-  shortcutPill:       { borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#EEEEF5' },
-  shortcutActive:     { backgroundColor: '#6C47FF1F', borderWidth: 1.5, borderColor: '#6C47FF' },
-  shortcutText:       { fontSize: 13, fontWeight: '500', color: '#6B6B85' },
-  shortcutTextActive: { color: '#4422CC', fontWeight: '700' },
+  shortcutPill:       { borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#E0EDF2' },
+  shortcutActive:     { backgroundColor: '#FF7B541F', borderWidth: 1.5, borderColor: '#FF7B54' },
+  shortcutText:       { fontSize: 13, fontWeight: '500', color: '#4A7080' },
+  shortcutTextActive: { color: '#007A8A', fontWeight: '700' },
 
   pillRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   pill:    { flex: 1, borderRadius: 99, paddingVertical: 10, alignItems: 'center' },
   pillText:{ fontSize: 12 },
 
   confirmBtn: {
-    backgroundColor: '#6C47FF', borderRadius: 14, padding: 15,
+    backgroundColor: '#FF7B54', borderRadius: 14, padding: 15,
     alignItems: 'center', marginTop: 4, marginBottom: 4,
   },
   confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

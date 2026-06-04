@@ -1,4 +1,5 @@
 import React, { useCallback, useRef } from 'react'
+import { Plus } from 'lucide-react-native'
 import {
   Alert,
   Animated,
@@ -26,14 +27,14 @@ const EMOJI_PRESETS = ['🏋️','📚','🧘','💧','🚫','🎯','✍️','�
 const MEDALS        = ['🥇','🥈','🥉']
 
 function streakBorderColor(streak: number) {
-  if (streak >= 7) return '#FF3CAC'
-  if (streak >= 3) return '#00C896'
-  return '#DDDDE8'
+  if (streak >= 7) return '#FF7B54'
+  if (streak >= 3) return '#2DC653'
+  return '#C5D5DC'
 }
 function streakCircleBg(streak: number) {
-  if (streak >= 7) return '#FF3CAC1F'
-  if (streak >= 3) return '#00C8961F'
-  return '#EEEEF5'
+  if (streak >= 7) return '#FF7B541F'
+  if (streak >= 3) return '#2DC6531F'
+  return '#E0EDF2'
 }
 
 // ─── HabitItem ────────────────────────────────────────────────────────────────
@@ -149,14 +150,14 @@ export default function HabitsScreen() {
               <Text style={st.headerSub}>Aujourd'hui</Text>
             </View>
             <TouchableOpacity style={st.addBtn} onPress={() => setShowSheet(true)} activeOpacity={0.85}>
-              <Text style={st.addBtnText}>+</Text>
+              <Plus size={22} color="#fff" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
 
           {/* Stats */}
           <View style={st.statsRow}>
-            <StatCard value={`${completedCount} / ${habits.length}`} label="Validées"      color="#00C896" />
-            <StatCard value={`🧊 ${totalFreezes}`}                   label="Jokers restants" color="#6C47FF" />
+            <StatCard value={`${completedCount} / ${habits.length}`} label="Validées"      color="#2DC653" />
+            <StatCard value={`🧊 ${totalFreezes}`}                   label="Jokers restants" color="#2DC653" />
           </View>
 
           {/* Liste */}
@@ -171,7 +172,7 @@ export default function HabitsScreen() {
                   {
                     label: 'Supprimer',
                     emoji: '🗑️',
-                    color: '#FF5C5C',
+                    color: '#FF7B54',
                     onPress: () => {
                       Alert.alert(
                         'Supprimer l\'habitude',
@@ -215,7 +216,7 @@ export default function HabitsScreen() {
             <Pressable style={st.overlay} onPress={handleCancel} />
             <View style={st.sheet}>
               <Text style={st.sheetTitle}>Nouvelle habitude</Text>
-              <TextInput style={st.sheetInput} placeholder="Nom de l'habitude…" placeholderTextColor="#A0A0B8" value={newName} onChangeText={setNewName} autoFocus selectionColor="#00C896" />
+              <TextInput style={st.sheetInput} placeholder="Nom de l'habitude…" placeholderTextColor="#7A9AAB" value={newName} onChangeText={setNewName} autoFocus selectionColor="#2DC653" />
               <Text style={st.sheetLabel}>Emoji</Text>
               <View style={{ gap: 8, marginBottom: 16 }}>
                 {emojiRows.map((row, ri) => (
@@ -223,7 +224,7 @@ export default function HabitsScreen() {
                     {row.map(emoji => (
                       <TouchableOpacity
                         key={emoji}
-                        style={[st.emojiItem, newEmoji === emoji && { borderWidth: 2, borderColor: '#00C896', backgroundColor: '#00C8961F' }]}
+                        style={[st.emojiItem, newEmoji === emoji && { borderWidth: 2, borderColor: '#2DC653', backgroundColor: '#2DC6531F' }]}
                         onPress={() => setNewEmoji(emoji)} activeOpacity={0.8}
                       >
                         <Text style={{ fontSize: 24 }}>{emoji}</Text>
@@ -243,8 +244,8 @@ export default function HabitsScreen() {
                   value={identityStatement}
                   onChangeText={setIdentityStatement}
                   placeholder="fait du sport chaque jour"
-                  placeholderTextColor="#A0A0B8"
-                  selectionColor="#00C896"
+                  placeholderTextColor="#7A9AAB"
+                  selectionColor="#2DC653"
                 />
               </View>
 
@@ -257,16 +258,16 @@ export default function HabitsScreen() {
                     value={whenField}
                     onChangeText={setWhenField}
                     placeholder="Après mon café du matin..."
-                    placeholderTextColor="#A0A0B8"
-                    selectionColor="#00C896"
+                    placeholderTextColor="#7A9AAB"
+                    selectionColor="#2DC653"
                   />
                   <TextInput
                     style={[st.sheetInput, { marginBottom: 0 }]}
                     value={whereField}
                     onChangeText={setWhereField}
                     placeholder="Dans ma chambre / Au bureau..."
-                    placeholderTextColor="#A0A0B8"
-                    selectionColor="#00C896"
+                    placeholderTextColor="#7A9AAB"
+                    selectionColor="#2DC653"
                   />
                 </View>
               </View>
@@ -275,7 +276,7 @@ export default function HabitsScreen() {
                 <Text style={st.createBtnText}>Créer</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleCancel} style={{ alignItems: 'center', marginTop: 10, marginBottom: 8 }}>
-                <Text style={{ color: '#A0A0B8', fontSize: 14 }}>Annuler</Text>
+                <Text style={{ color: '#7A9AAB', fontSize: 14 }}>Annuler</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -288,59 +289,59 @@ export default function HabitsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: '#F7F7FA' },
+  safe:   { flex: 1, backgroundColor: '#FFF8F0' },
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 16 },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#0D0D1A', letterSpacing: -0.5 },
-  headerSub:   { fontSize: 13, color: '#6B6B85', marginTop: 2 },
-  addBtn: { width: 40, height: 40, borderRadius: 99, backgroundColor: '#00C896', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#2DC653', letterSpacing: -0.5 },
+  headerSub:   { fontSize: 13, color: '#4A7080', marginTop: 2 },
+  addBtn: { width: 40, height: 40, borderRadius: 99, backgroundColor: '#2DC653', alignItems: 'center', justifyContent: 'center' },
   addBtnText: { color: '#fff', fontSize: 24, lineHeight: 26 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  empty: { textAlign: 'center', color: '#A0A0B8', fontSize: 14, marginTop: 24 },
+  empty: { textAlign: 'center', color: '#7A9AAB', fontSize: 14, marginTop: 24 },
 
-  habitCard: { backgroundColor: '#fff', borderRadius: 20, borderLeftWidth: 4, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#6C47FF', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  habitCard: { backgroundColor: '#fff', borderRadius: 20, borderLeftWidth: 4, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#2DC653', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   habitEmoji: { width: 44, height: 44, borderRadius: 99, alignItems: 'center', justifyContent: 'center' },
-  habitName:     { fontSize: 15, fontWeight: '700', color: '#0D0D1A', marginBottom: 2 },
-  habitIdentity: { fontSize: 11, color: '#00C896', fontWeight: '600', fontStyle: 'italic', marginBottom: 3 },
-  habitStreak:   { fontSize: 12, color: '#6B6B85' },
-  habitTotal:    { fontSize: 11, color: '#A0A0B8', marginTop: 1 },
+  habitName:     { fontSize: 15, fontWeight: '700', color: '#264653', marginBottom: 2 },
+  habitIdentity: { fontSize: 11, color: '#2DC653', fontWeight: '600', fontStyle: 'italic', marginBottom: 3 },
+  habitStreak:   { fontSize: 12, color: '#4A7080' },
+  habitTotal:    { fontSize: 11, color: '#7A9AAB', marginTop: 1 },
   contextBadge: {
-    backgroundColor: '#6C47FF1F', borderRadius: 12,
+    backgroundColor: '#2DC6531F', borderRadius: 12,
     paddingHorizontal: 10, paddingVertical: 5, marginTop: 6, alignSelf: 'flex-start',
   },
-  contextBadgeText: { fontSize: 12, color: '#6C47FF', fontWeight: '600' },
+  contextBadgeText: { fontSize: 12, color: '#2DC653', fontWeight: '600' },
   missWarning: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#FF95001F', borderRadius: 99,
+    backgroundColor: '#FF9F1C1F', borderRadius: 99,
     paddingHorizontal: 10, paddingVertical: 4, marginTop: 6, alignSelf: 'flex-start',
   },
-  missWarningText: { fontSize: 11, fontWeight: '700', color: '#B36800' },
+  missWarningText: { fontSize: 11, fontWeight: '700', color: '#A07000' },
   freezeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#6C47FF1F', borderRadius: 99,
+    backgroundColor: '#2DC6531F', borderRadius: 99,
     paddingHorizontal: 10, paddingVertical: 4, marginTop: 6, alignSelf: 'flex-start',
   },
-  freezeBtnText: { fontSize: 11, fontWeight: '700', color: '#6C47FF' },
-  checkBtn:     { width: 36, height: 36, borderRadius: 99, backgroundColor: '#00C8961F', borderWidth: 2, borderColor: '#00C896', alignItems: 'center', justifyContent: 'center' },
-  checkBtnDone: { backgroundColor: '#00C896', borderColor: '#00C896' },
-  checkMark:    { fontSize: 18, color: '#00C896', fontWeight: '700', lineHeight: 20 },
+  freezeBtnText: { fontSize: 11, fontWeight: '700', color: '#2DC653' },
+  checkBtn:     { width: 36, height: 36, borderRadius: 99, backgroundColor: '#2DC6531F', borderWidth: 2, borderColor: '#2DC653', alignItems: 'center', justifyContent: 'center' },
+  checkBtnDone: { backgroundColor: '#2DC653', borderColor: '#2DC653' },
+  checkMark:    { fontSize: 18, color: '#2DC653', fontWeight: '700', lineHeight: 20 },
 
-  hallCard: { backgroundColor: '#FF3CAC1F', borderRadius: 20, padding: 16, marginBottom: 24 },
-  hallTitle: { fontSize: 13, fontWeight: '700', color: '#FF3CAC', marginBottom: 12 },
+  hallCard: { backgroundColor: '#FF7B541F', borderRadius: 20, padding: 16, marginBottom: 24 },
+  hallTitle: { fontSize: 13, fontWeight: '700', color: '#FF7B54', marginBottom: 12 },
   hallRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   hallMedal: { fontSize: 20, width: 28 },
   hallEmoji: { fontSize: 18, width: 26 },
-  hallName:  { flex: 1, fontSize: 14, fontWeight: '600', color: '#0D0D1A' },
-  hallStreak:{ fontSize: 12, fontWeight: '700', color: '#FF3CAC' },
+  hallName:  { flex: 1, fontSize: 14, fontWeight: '600', color: '#264653' },
+  hallStreak:{ fontSize: 12, fontWeight: '700', color: '#FF7B54' },
 
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,26,0.35)' },
   sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 20 },
-  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#0D0D1A', textAlign: 'center', marginBottom: 16 },
-  sheetInput: { backgroundColor: '#F7F7FA', borderRadius: 14, padding: 14, fontSize: 15, color: '#0D0D1A', marginBottom: 14 },
-  sheetLabel: { fontSize: 12, fontWeight: '700', color: '#A0A0B8', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 },
-  identityPrefix: { backgroundColor: '#00C8961F', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center' },
-  identityPrefixText: { fontSize: 14, fontWeight: '700', color: '#007A5E' },
-  emojiItem: { width: 46, height: 46, borderRadius: 12, backgroundColor: '#F7F7FA', alignItems: 'center', justifyContent: 'center' },
-  createBtn:     { backgroundColor: '#00C896', borderRadius: 14, padding: 15, alignItems: 'center', marginBottom: 4 },
+  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#264653', textAlign: 'center', marginBottom: 16 },
+  sheetInput: { backgroundColor: '#FFF8F0', borderRadius: 14, padding: 14, fontSize: 15, color: '#264653', marginBottom: 14 },
+  sheetLabel: { fontSize: 12, fontWeight: '700', color: '#7A9AAB', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 },
+  identityPrefix: { backgroundColor: '#2DC6531F', borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center' },
+  identityPrefixText: { fontSize: 14, fontWeight: '700', color: '#1A9A50' },
+  emojiItem: { width: 46, height: 46, borderRadius: 12, backgroundColor: '#FFF8F0', alignItems: 'center', justifyContent: 'center' },
+  createBtn:     { backgroundColor: '#2DC653', borderRadius: 14, padding: 15, alignItems: 'center', marginBottom: 4 },
   createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 })

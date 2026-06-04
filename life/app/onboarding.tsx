@@ -32,7 +32,7 @@ function Dots({ step }: { step: number }) {
             width: step === i ? 24 : 8,
             height: 8,
             borderRadius: 99,
-            backgroundColor: step === i ? '#6C47FF' : '#DDDDE8',
+            backgroundColor: step === i ? '#00BFA6' : '#C5D5DC',
           }}
         />
       ))}
@@ -47,18 +47,18 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
       <View style={{
         width: 120, height: 120, borderRadius: 40,
-        backgroundColor: '#6C47FF', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: '#00BFA6', alignItems: 'center', justifyContent: 'center',
         marginBottom: 32,
-        shadowColor: '#6C47FF', shadowOpacity: 0.4, shadowRadius: 24, elevation: 12,
+        shadowColor: '#00BFA6', shadowOpacity: 0.4, shadowRadius: 24, elevation: 12,
       }}>
         <Text style={{ fontSize: 56 }}>⚡</Text>
       </View>
 
-      <Text style={{ fontSize: 36, fontWeight: '900', color: '#0D0D1A', textAlign: 'center', letterSpacing: -1, marginBottom: 16 }}>
+      <Text style={{ fontSize: 36, fontWeight: '900', color: '#264653', textAlign: 'center', letterSpacing: -1, marginBottom: 16 }}>
         Bienvenue dans{'\n'}Life
       </Text>
 
-      <Text style={{ fontSize: 16, color: '#6B6B85', textAlign: 'center', lineHeight: 24, marginBottom: 48 }}>
+      <Text style={{ fontSize: 16, color: '#4A7080', textAlign: 'center', lineHeight: 24, marginBottom: 48 }}>
         Ton app personnelle pour organiser{'\n'}ta vie, ton sport et ton argent.
       </Text>
 
@@ -69,20 +69,20 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
       ].map((f, i) => (
         <View key={i} style={{
           flexDirection: 'row', alignItems: 'center', gap: 12,
-          backgroundColor: '#F7F7FA', borderRadius: 14, padding: 14,
+          backgroundColor: '#FFF8F0', borderRadius: 14, padding: 14,
           width: '100%', marginBottom: 8,
         }}>
           <Text style={{ fontSize: 22 }}>{f.emoji}</Text>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#0D0D1A' }}>{f.label}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#264653' }}>{f.label}</Text>
         </View>
       ))}
 
       <TouchableOpacity
         onPress={onNext}
         style={{
-          backgroundColor: '#6C47FF', borderRadius: 16,
+          backgroundColor: '#00BFA6', borderRadius: 16,
           padding: 18, width: '100%', alignItems: 'center', marginTop: 32,
-          shadowColor: '#6C47FF', shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
+          shadowColor: '#00BFA6', shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
         }}
       >
         <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>Commencer 🚀</Text>
@@ -101,23 +101,23 @@ function BudgetScreen({ onNext }: { onNext: () => void }) {
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', padding: 32 }}>
       <View style={{ marginTop: 60, marginBottom: 40 }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#FF5C5C', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: '#FF7B54', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
           Étape 1 sur 2
         </Text>
-        <Text style={{ fontSize: 30, fontWeight: '900', color: '#0D0D1A', letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: 30, fontWeight: '900', color: '#264653', letterSpacing: -0.5 }}>
           Quel est ton{'\n'}budget mensuel ? 💰
         </Text>
-        <Text style={{ fontSize: 15, color: '#6B6B85', marginTop: 12, lineHeight: 22 }}>
+        <Text style={{ fontSize: 15, color: '#4A7080', marginTop: 12, lineHeight: 22 }}>
           On va t'aider à suivre tes dépenses et rester dans les clous.
         </Text>
       </View>
 
       <View style={{
-        backgroundColor: '#F7F7FA', borderRadius: 20, padding: 24,
+        backgroundColor: '#FFF8F0', borderRadius: 20, padding: 24,
         alignItems: 'center', marginBottom: 16,
-        borderWidth: 2, borderColor: budget ? '#FF5C5C' : '#EEEEF5',
+        borderWidth: 2, borderColor: budget ? '#FF7B54' : '#E0EDF2',
       }}>
-        <Text style={{ fontSize: 14, color: '#A0A0B8', fontWeight: '600', marginBottom: 8 }}>
+        <Text style={{ fontSize: 14, color: '#7A9AAB', fontWeight: '600', marginBottom: 8 }}>
           Budget par mois
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -126,14 +126,14 @@ function BudgetScreen({ onNext }: { onNext: () => void }) {
             onChangeText={setBudget}
             placeholder="0"
             keyboardType="numeric"
-            style={{ fontSize: 48, fontWeight: '900', color: '#0D0D1A', minWidth: 80, textAlign: 'center' }}
-            placeholderTextColor="#DDDDE8"
+            style={{ fontSize: 48, fontWeight: '900', color: '#264653', minWidth: 80, textAlign: 'center' }}
+            placeholderTextColor="#C5D5DC"
           />
-          <Text style={{ fontSize: 28, fontWeight: '800', color: '#A0A0B8' }}>€</Text>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: '#7A9AAB' }}>€</Text>
         </View>
       </View>
 
-      <Text style={{ fontSize: 12, fontWeight: '700', color: '#A0A0B8', marginBottom: 10 }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: '#7A9AAB', marginBottom: 10 }}>
         SUGGESTIONS RAPIDES
       </Text>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 40 }}>
@@ -142,11 +142,11 @@ function BudgetScreen({ onNext }: { onNext: () => void }) {
             key={amount}
             onPress={() => setBudget(amount)}
             style={{
-              backgroundColor: budget === amount ? '#FF5C5C' : '#EEEEF5',
+              backgroundColor: budget === amount ? '#FF7B54' : '#E0EDF2',
               borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: '700', color: budget === amount ? '#fff' : '#6B6B85' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: budget === amount ? '#fff' : '#4A7080' }}>
               {amount}€
             </Text>
           </TouchableOpacity>
@@ -165,11 +165,11 @@ function BudgetScreen({ onNext }: { onNext: () => void }) {
           onNext()
         }}
         style={{
-          backgroundColor: budget ? '#FF5C5C' : '#EEEEF5',
+          backgroundColor: budget ? '#FF7B54' : '#E0EDF2',
           borderRadius: 16, padding: 18, alignItems: 'center',
         }}
       >
-        <Text style={{ color: budget ? '#fff' : '#A0A0B8', fontSize: 16, fontWeight: '800' }}>
+        <Text style={{ color: budget ? '#fff' : '#7A9AAB', fontSize: 16, fontWeight: '800' }}>
           {budget ? `Continuer avec ${budget}€ →` : 'Passer cette étape →'}
         </Text>
       </TouchableOpacity>
@@ -191,13 +191,13 @@ function HabitsScreen({ onFinish }: { onFinish: (selected: string[]) => void }) 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#FFFFFF' }} contentContainerStyle={{ padding: 32, paddingBottom: 48 }}>
       <View style={{ marginTop: 60, marginBottom: 32 }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#00C896', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: '#2DC653', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
           Étape 2 sur 2
         </Text>
-        <Text style={{ fontSize: 30, fontWeight: '900', color: '#0D0D1A', letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: 30, fontWeight: '900', color: '#264653', letterSpacing: -0.5 }}>
           Tes habitudes{'\n'}quotidiennes ⚡
         </Text>
-        <Text style={{ fontSize: 15, color: '#6B6B85', marginTop: 12, lineHeight: 22 }}>
+        <Text style={{ fontSize: 15, color: '#4A7080', marginTop: 12, lineHeight: 22 }}>
           Choisis celles que tu veux construire. Tu pourras en ajouter plus tard.
         </Text>
       </View>
@@ -211,24 +211,24 @@ function HabitsScreen({ onFinish }: { onFinish: (selected: string[]) => void }) 
               onPress={() => toggle(habit.name)}
               style={{
                 width: (width - 74) / 2,
-                backgroundColor: selected ? '#00C896' : '#F7F7FA',
+                backgroundColor: selected ? '#2DC653' : '#FFF8F0',
                 borderRadius: 18, padding: 16,
                 borderWidth: 2,
-                borderColor: selected ? '#00C896' : '#EEEEF5',
-                shadowColor: selected ? '#00C896' : 'transparent',
+                borderColor: selected ? '#2DC653' : '#E0EDF2',
+                shadowColor: selected ? '#2DC653' : 'transparent',
                 shadowOpacity: 0.2, shadowRadius: 8, elevation: selected ? 4 : 0,
               }}
             >
               <Text style={{ fontSize: 28, marginBottom: 8 }}>{habit.emoji}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: selected ? '#fff' : '#0D0D1A' }}>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: selected ? '#fff' : '#264653' }}>
                 {habit.name}
               </Text>
-              <Text style={{ fontSize: 11, color: selected ? 'rgba(255,255,255,0.8)' : '#A0A0B8', marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: selected ? 'rgba(255,255,255,0.8)' : '#7A9AAB', marginTop: 2 }}>
                 {habit.description}
               </Text>
               {selected && (
                 <View style={{ position: 'absolute', top: 10, right: 10, width: 20, height: 20, borderRadius: 99, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 11, color: '#00C896', fontWeight: '900' }}>✓</Text>
+                  <Text style={{ fontSize: 11, color: '#2DC653', fontWeight: '900' }}>✓</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -241,14 +241,14 @@ function HabitsScreen({ onFinish }: { onFinish: (selected: string[]) => void }) 
       <TouchableOpacity
         onPress={() => onFinish(selectedHabits)}
         style={{
-          backgroundColor: selectedHabits.length > 0 ? '#00C896' : '#EEEEF5',
+          backgroundColor: selectedHabits.length > 0 ? '#2DC653' : '#E0EDF2',
           borderRadius: 16, padding: 18, alignItems: 'center',
-          shadowColor: '#00C896',
+          shadowColor: '#2DC653',
           shadowOpacity: selectedHabits.length > 0 ? 0.3 : 0,
           shadowRadius: 12, elevation: selectedHabits.length > 0 ? 6 : 0,
         }}
       >
-        <Text style={{ color: selectedHabits.length > 0 ? '#fff' : '#A0A0B8', fontSize: 16, fontWeight: '800' }}>
+        <Text style={{ color: selectedHabits.length > 0 ? '#fff' : '#7A9AAB', fontSize: 16, fontWeight: '800' }}>
           {selectedHabits.length > 0
             ? `C'est parti avec ${selectedHabits.length} habitude${selectedHabits.length > 1 ? 's' : ''} ! 🔥`
             : 'Passer et commencer →'

@@ -111,7 +111,7 @@ export default function RootLayout() {
 
   if (!isReady) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#6C47FF', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: '#00BFA6', alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: 48 }}>⚡</Text>
         <Text style={{ fontSize: 32, fontWeight: '900', color: '#fff', marginTop: 16 }}>Life</Text>
       </View>
@@ -124,6 +124,7 @@ export default function RootLayout() {
         <ThemeProvider value={AppTheme}>
           <View style={{ flex: 1, backgroundColor: Colors.bg0 }}>
             <Stack>
+              <Stack.Screen name="index"  options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
                 name="settings"

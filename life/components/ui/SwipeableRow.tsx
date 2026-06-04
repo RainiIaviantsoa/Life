@@ -30,7 +30,7 @@ export function SwipeableRow({ leftActions, rightActions, children }: Props) {
             outputRange: [-80 * (leftActions.length - i), 0],
           })
           return (
-            <Animated.View key={i} style={{ transform: [{ translateX: trans }] }}>
+            <Animated.View key={`l${i}`} style={{ transform: [{ translateX: trans }] }}>
               <TouchableOpacity
                 onPress={() => { action.onPress(); close() }}
                 style={{
@@ -65,7 +65,7 @@ export function SwipeableRow({ leftActions, rightActions, children }: Props) {
             outputRange: [80 * (i + 1), 0],
           })
           return (
-            <Animated.View key={i} style={{ transform: [{ translateX: trans }] }}>
+            <Animated.View key={`r${i}`} style={{ transform: [{ translateX: trans }] }}>
               <TouchableOpacity
                 onPress={() => { action.onPress(); close() }}
                 style={{

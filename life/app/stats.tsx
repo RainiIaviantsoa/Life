@@ -27,31 +27,31 @@ const TABS: { key: TabKey; label: string }[] = [
 ]
 
 const TAB_COLOR: Record<TabKey, string> = {
-  tasks:   '#6C47FF',
-  workout: '#FF9500',
-  finance: '#FF5C5C',
-  habits:  '#00C896',
+  tasks:   '#FF7B54',
+  workout: '#FF9F1C',
+  finance: '#0ABDE3',
+  habits:  '#2DC653',
 }
 
 const CAT_META: Record<string, { emoji: string; label: string; color: string }> = {
-  food:          { emoji: '🍔', label: 'Nourriture',  color: '#FF9500' },
-  transport:     { emoji: '🚗', label: 'Transport',   color: '#0099FF' },
-  sport:         { emoji: '🏋️', label: 'Sport',       color: '#00C896' },
-  health:        { emoji: '💊', label: 'Santé',       color: '#FF5C5C' },
-  entertainment: { emoji: '🎬', label: 'Loisirs',     color: '#6C47FF' },
-  shopping:      { emoji: '🛍️', label: 'Shopping',    color: '#FF3CAC' },
-  bills:         { emoji: '📄', label: 'Factures',    color: '#A0A0B8' },
-  salary:        { emoji: '💼', label: 'Salaire',     color: '#00C896' },
-  freelance:     { emoji: '💻', label: 'Freelance',   color: '#6C47FF' },
-  other:         { emoji: '📦', label: 'Autre',       color: '#A0A0B8' },
+  food:          { emoji: '🍔', label: 'Nourriture',  color: '#FF9F1C' },
+  transport:     { emoji: '🚗', label: 'Transport',   color: '#0ABDE3' },
+  sport:         { emoji: '🏋️', label: 'Sport',       color: '#2DC653' },
+  health:        { emoji: '💊', label: 'Santé',       color: '#FF7B54' },
+  entertainment: { emoji: '🎬', label: 'Loisirs',     color: '#00BFA6' },
+  shopping:      { emoji: '🛍️', label: 'Shopping',    color: '#FF7B54' },
+  bills:         { emoji: '📄', label: 'Factures',    color: '#7A9AAB' },
+  salary:        { emoji: '💼', label: 'Salaire',     color: '#2DC653' },
+  freelance:     { emoji: '💻', label: 'Freelance',   color: '#00BFA6' },
+  other:         { emoji: '📦', label: 'Autre',       color: '#7A9AAB' },
 }
 
 const SCREEN_W = Dimensions.get('window').width
 const CHART_W  = SCREEN_W - 32   // 16 padding each side
 const AXIS_STYLE = {
-  tickLabels: { fontSize: 10, fill: '#A0A0B8', fontFamily: 'System' },
-  grid:       { stroke: '#F0F0F8' },
-  axis:       { stroke: '#DDDDE8' },
+  tickLabels: { fontSize: 10, fill: '#7A9AAB', fontFamily: 'System' },
+  grid:       { stroke: '#EDE4D9' },
+  axis:       { stroke: '#C5D5DC' },
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
       shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
     }}>
       <Text style={{
-        fontSize: 11, fontWeight: '700', color: '#A0A0B8', textTransform: 'uppercase',
+        fontSize: 11, fontWeight: '700', color: '#7A9AAB', textTransform: 'uppercase',
         letterSpacing: 0.8, marginBottom: 12,
       }}>
         {title}
@@ -92,11 +92,11 @@ function HBar({ label, value, max, color }: { label: string; value: number; max:
   const pct = max > 0 ? value / max : 0
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-      <Text style={{ width: 68, fontSize: 12, fontWeight: '600', color: '#6B6B85' }} numberOfLines={1}>{label}</Text>
-      <View style={{ flex: 1, backgroundColor: '#EEEEF5', borderRadius: 99, height: 8 }}>
+      <Text style={{ width: 68, fontSize: 12, fontWeight: '600', color: '#4A7080' }} numberOfLines={1}>{label}</Text>
+      <View style={{ flex: 1, backgroundColor: '#E0EDF2', borderRadius: 99, height: 8 }}>
         <View style={{ width: `${Math.round(pct * 100)}%`, backgroundColor: color, height: 8, borderRadius: 99 }} />
       </View>
-      <Text style={{ width: 28, fontSize: 12, fontWeight: '700', color: '#0D0D1A', textAlign: 'right' }}>{value}</Text>
+      <Text style={{ width: 28, fontSize: 12, fontWeight: '700', color: '#264653', textAlign: 'right' }}>{value}</Text>
     </View>
   )
 }
@@ -229,7 +229,7 @@ export default function StatsScreen() {
   // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F7F7FA' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF8F0' }} edges={['top']}>
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
@@ -242,14 +242,14 @@ export default function StatsScreen() {
           <TouchableOpacity
             onPress={() => router.back()}
             style={{
-              width: 40, height: 40, borderRadius: 99, backgroundColor: '#EEEEF5',
+              width: 40, height: 40, borderRadius: 99, backgroundColor: '#E0EDF2',
               alignItems: 'center', justifyContent: 'center',
             }}
             activeOpacity={0.75}
           >
             <Text style={{ fontSize: 18 }}>←</Text>
           </TouchableOpacity>
-          <Text style={{ fontSize: 26, fontWeight: '900', color: '#0D0D1A' }}>Statistiques</Text>
+          <Text style={{ fontSize: 26, fontWeight: '900', color: '#264653' }}>Statistiques</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -260,12 +260,12 @@ export default function StatsScreen() {
               key={key}
               style={{
                 borderRadius: 99, paddingHorizontal: 16, paddingVertical: 9,
-                backgroundColor: tab === key ? TAB_COLOR[key] : '#EEEEF5',
+                backgroundColor: tab === key ? TAB_COLOR[key] : '#E0EDF2',
               }}
               onPress={() => setTab(key)}
               activeOpacity={0.8}
             >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: tab === key ? '#FFF' : '#6B6B85' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: tab === key ? '#FFF' : '#4A7080' }}>
                 {label}
               </Text>
             </TouchableOpacity>
@@ -305,8 +305,8 @@ export default function StatsScreen() {
             </ChartCard>
 
             <ChartCard title="Répartition par priorité">
-              <HBar label="Haute"   value={tasksData.high}   max={tasksData.maxP} color="#FF5C5C" />
-              <HBar label="Moyenne" value={tasksData.medium} max={tasksData.maxP} color="#FF9500" />
+              <HBar label="Haute"   value={tasksData.high}   max={tasksData.maxP} color="#FF7B54" />
+              <HBar label="Moyenne" value={tasksData.medium} max={tasksData.maxP} color="#FF9F1C" />
               <HBar label="Basse"   value={tasksData.low}    max={tasksData.maxP} color={color}   />
             </ChartCard>
           </>
@@ -346,7 +346,7 @@ export default function StatsScreen() {
 
             <ChartCard title="Exercices les plus pratiqués">
               {workoutData.top5.length === 0 ? (
-                <Text style={{ color: '#A0A0B8', fontSize: 13, textAlign: 'center', paddingVertical: 12 }}>
+                <Text style={{ color: '#7A9AAB', fontSize: 13, textAlign: 'center', paddingVertical: 12 }}>
                   Aucun exercice enregistré
                 </Text>
               ) : workoutData.top5.map(([name, count]) => (
@@ -381,7 +381,7 @@ export default function StatsScreen() {
 
             <ChartCard title="Dépenses par catégorie">
               {financeData.byCategory.length === 0 ? (
-                <Text style={{ color: '#A0A0B8', fontSize: 13, textAlign: 'center', paddingVertical: 12 }}>
+                <Text style={{ color: '#7A9AAB', fontSize: 13, textAlign: 'center', paddingVertical: 12 }}>
                   Aucune dépense ce mois
                 </Text>
               ) : (
@@ -400,13 +400,13 @@ export default function StatsScreen() {
                   {financeData.byCategory.map(c => (
                     <View key={c.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <View style={{ width: 10, height: 10, borderRadius: 99, backgroundColor: c.color }} />
-                      <Text style={{ flex: 1, fontSize: 13, color: '#0D0D1A', fontWeight: '500' }}>
+                      <Text style={{ flex: 1, fontSize: 13, color: '#264653', fontWeight: '500' }}>
                         {c.emoji} {c.label}
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#6B6B85', fontWeight: '700' }}>
+                      <Text style={{ fontSize: 12, color: '#4A7080', fontWeight: '700' }}>
                         Ar{Math.round(c.total)}
                       </Text>
-                      <Text style={{ fontSize: 11, color: '#A0A0B8', width: 34, textAlign: 'right' }}>
+                      <Text style={{ fontSize: 11, color: '#7A9AAB', width: 34, textAlign: 'right' }}>
                         {financeData.expenses > 0 ? Math.round(c.total / financeData.expenses * 100) : 0}%
                       </Text>
                     </View>
@@ -456,9 +456,9 @@ export default function StatsScreen() {
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
                 {habitsData.last30.map(({ date, count }) => {
                   const bg =
-                    count === 0 ? '#EEEEF5'   :
-                    count <= 2  ? '#00C89640' :
-                    count <= 4  ? '#00C89680' : '#00C896'
+                    count === 0 ? '#E0EDF2'   :
+                    count <= 2  ? '#2DC65340' :
+                    count <= 4  ? '#2DC65380' : '#2DC653'
                   return (
                     <View key={date} style={{ width: 36, height: 36, borderRadius: 6, backgroundColor: bg }} />
                   )
@@ -468,7 +468,7 @@ export default function StatsScreen() {
 
             <ChartCard title="Classement par streak">
               {habitsData.ranked.length === 0 ? (
-                <Text style={{ color: '#A0A0B8', fontSize: 13, textAlign: 'center', paddingVertical: 12 }}>
+                <Text style={{ color: '#7A9AAB', fontSize: 13, textAlign: 'center', paddingVertical: 12 }}>
                   Aucune habitude
                 </Text>
               ) : habitsData.ranked.map((h, i) => (
@@ -478,11 +478,11 @@ export default function StatsScreen() {
                   </Text>
                   <Text style={{ fontSize: 20 }}>{h.emoji}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0D0D1A' }} numberOfLines={1}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#264653' }} numberOfLines={1}>
                       {h.name}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <View style={{ flex: 1, backgroundColor: '#EEEEF5', borderRadius: 99, height: 6 }}>
+                      <View style={{ flex: 1, backgroundColor: '#E0EDF2', borderRadius: 99, height: 6 }}>
                         <View style={{
                           width: `${habitsData.maxS > 0 ? Math.round(h.streak / habitsData.maxS * 100) : 0}%`,
                           backgroundColor: color, height: 6, borderRadius: 99,

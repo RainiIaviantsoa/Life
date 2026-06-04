@@ -51,9 +51,9 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#DDDDE8', true: '#6C47FF' }}
+        trackColor={{ false: '#C5D5DC', true: '#00BFA6' }}
         thumbColor="#FFFFFF"
-        ios_backgroundColor="#DDDDE8"
+        ios_backgroundColor="#C5D5DC"
       />
     </View>
   )
@@ -186,7 +186,7 @@ export default function SettingsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  safe:  { flex: 1, backgroundColor: '#F7F7FA' },
+  safe:  { flex: 1, backgroundColor: '#FFF8F0' },
   scroll:{ paddingHorizontal: 16, paddingBottom: 40 },
 
   header: {
@@ -198,13 +198,13 @@ const st = StyleSheet.create({
     paddingBottom:  8,
   },
   backBtn:   { width: 40, alignItems: 'flex-start' },
-  backArrow: { fontSize: 22, color: '#6C47FF', fontWeight: '600' },
-  title:     { fontSize: 18, fontWeight: '800', color: '#0D0D1A' },
+  backArrow: { fontSize: 22, color: '#00BFA6', fontWeight: '600' },
+  title:     { fontSize: 18, fontWeight: '800', color: '#264653' },
 
   sectionTitle: {
     fontSize:   12,
     fontWeight: '700',
-    color:      '#A0A0B8',
+    color:      '#7A9AAB',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     marginTop:  20,
@@ -215,7 +215,7 @@ const st = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius:    20,
     paddingHorizontal: 16,
-    shadowColor:     '#6C47FF',
+    shadowColor:     '#00BFA6',
     shadowOffset:    { width: 0, height: 2 },
     shadowOpacity:   0.06,
     shadowRadius:    8,
@@ -230,16 +230,16 @@ const st = StyleSheet.create({
   toggleLabel: {
     fontSize:   15,
     fontWeight: '600',
-    color:      '#0D0D1A',
+    color:      '#264653',
     marginBottom: 3,
   },
   toggleDesc: {
     fontSize: 12,
-    color:    '#6B6B85',
+    color:    '#4A7080',
     lineHeight: 16,
   },
 
-  divider: { height: 0.5, backgroundColor: '#EEEEF5' },
+  divider: { height: 0.5, backgroundColor: '#E0EDF2' },
 
   infoRow: {
     flexDirection:  'row',
@@ -247,6 +247,6 @@ const st = StyleSheet.create({
     alignItems:     'center',
     paddingVertical: 14,
   },
-  infoLabel: { fontSize: 15, fontWeight: '600', color: '#0D0D1A' },
-  infoValue: { fontSize: 13, color: '#6B6B85' },
+  infoLabel: { fontSize: 15, fontWeight: '600', color: '#264653' },
+  infoValue: { fontSize: 13, color: '#4A7080' },
 })
